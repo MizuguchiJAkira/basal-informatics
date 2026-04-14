@@ -283,13 +283,22 @@ class ProcessingJob(db.Model):
     job_id = db.Column(db.String(8), unique=True, nullable=False, index=True)
     property_name = db.Column(db.String(200))
     state = db.Column(db.String(2))
-    status = db.Column(db.String(20), default="queued")  # queued/processing/classifying/reporting/complete/error
+    status = db.Column(db.String(20), default="queued", index=True)  # queued/processing/classifying/reporting/complete/error
     error_message = db.Column(db.Text)
     n_photos = db.Column(db.String(20))
     n_species = db.Column(db.Integer)
     n_events = db.Column(db.String(20))
+    # Legacy filesystem paths (kept for backward compat, read by older jobs).
     report_path = db.Column(db.String(500))
     appendix_path = db.Column(db.String(500))
+    # Object-storage keys (Spaces). Preferred over *_path going forward.
+    zip_key = db.Column(db.String(500))          # uploaded ZIP location
+    report_key = db.Column(db.String(500))       # generated PDF location
+    appendix_key = db.Column(db.String(500))     # events CSV location
+    # Worker claim fields (DB-polling job queue).
+    worker_id = db.Column(db.String(64))         # hostname of worker that claimed job
+    claimed_at = db.Column(db.DateTime)
+    demo = db.Column(db.Boolean, default=False)  # demo jobs run inline in web
     species_json = db.Column(db.Text)  # JSON array of species stats
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime)
@@ -306,6 +315,9 @@ class ProcessingJob(db.Model):
             "n_events": self.n_events,
             "report_path": self.report_path,
             "appendix_path": self.appendix_path,
+            "zip_key": self.zip_key,
+            "report_key": self.report_key,
+            "appendix_key": self.appendix_key,
             "species": json.loads(self.species_json) if self.species_json else [],
             "submitted_at": self.submitted_at.isoformat() if self.submitted_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,

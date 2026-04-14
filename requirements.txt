@@ -25,11 +25,14 @@ pandas>=2.1
 numpy>=1.26
 
 # Detection / ML
-# NOTE: speciesnet pulls in torch (~2GB) and blows the DO App Platform build VM.
-# Imports in strecker/detect.py and strecker/reid.py are lazy, so the app runs
-# fine in DEMO_MODE without these. Install manually on workers that actually
-# run detection:  pip install speciesnet>=5.0
+# NOTE: speciesnet pulls in torch (~2GB). Installed only in the worker image
+# (Dockerfile.worker), NOT here — App Platform's build VM can't snapshot 2GB+.
+# Imports in strecker/detect.py and strecker/reid.py are lazy, so the web
+# container works fine without them.
 Pillow>=9.0
+
+# Object storage (DO Spaces / S3)
+boto3>=1.34
 
 # Production server
 gunicorn>=21.0

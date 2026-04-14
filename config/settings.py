@@ -73,8 +73,35 @@ if not FLASK_DEBUG and FLASK_SECRET_KEY == _default_secret:
     )
 
 # --- SQLAlchemy ---
+# DO App Platform: use Managed Postgres (DATABASE_URL is auto-injected when
+# the DB is bound as a component). Locally: SQLite inside instance/.
+# Note: DO sometimes gives `postgres://` URLs; SQLAlchemy 2.x wants `postgresql://`.
 DATABASE_URL = os.environ.get("DATABASE_URL", "sqlite:///basal.db")
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = "postgresql://" + DATABASE_URL[len("postgres://"):]
 SECRET_KEY = FLASK_SECRET_KEY
+
+# Connection pooling — App Platform containers share a small pool with the DB.
+SQLALCHEMY_ENGINE_OPTIONS = {
+    "pool_size": int(os.environ.get("DB_POOL_SIZE", "5")),
+    "max_overflow": int(os.environ.get("DB_MAX_OVERFLOW", "5")),
+    "pool_pre_ping": True,        # recycle dead connections transparently
+    "pool_recycle": 1800,         # 30 min — below Postgres idle timeout
+}
+
+# --- Object storage (DO Spaces / S3-compatible) ---
+# Set these to enable Spaces-backed uploads. If SPACES_BUCKET is empty,
+# the app falls back to local filesystem (dev only — App Platform's FS is
+# ephemeral and the worker runs on a separate box, so prod MUST use Spaces).
+SPACES_BUCKET = os.environ.get("SPACES_BUCKET", "")
+SPACES_REGION = os.environ.get("SPACES_REGION", "nyc3")
+SPACES_ENDPOINT = os.environ.get(
+    "SPACES_ENDPOINT",
+    f"https://{os.environ.get('SPACES_REGION', 'nyc3')}.digitaloceanspaces.com",
+)
+SPACES_KEY = os.environ.get("SPACES_KEY", "")
+SPACES_SECRET = os.environ.get("SPACES_SECRET", "")
+SPACES_PRESIGN_TTL = int(os.environ.get("SPACES_PRESIGN_TTL", "3600"))  # 1h
 
 # --- PDF styling ---
 PDF_COLORS = {

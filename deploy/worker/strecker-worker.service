@@ -1,0 +1,31 @@
+[Unit]
+Description=Strecker ML Worker
+Documentation=https://github.com/MizuguchiJAkira/strecker
+After=network-online.target docker.service
+Wants=network-online.target
+Requires=docker.service
+
+[Service]
+Type=simple
+Restart=always
+RestartSec=10
+# Reload env on each start so `systemctl restart strecker-worker` picks up
+# new credentials written to /etc/strecker/worker.env.
+EnvironmentFile=/etc/strecker/worker.env
+
+# Remove any stale container before starting (idempotent).
+ExecStartPre=-/usr/bin/docker rm -f strecker-worker
+
+ExecStart=/usr/bin/docker run --rm --name strecker-worker \
+    --env-file /etc/strecker/worker.env \
+    strecker-worker:latest
+
+ExecStop=/usr/bin/docker stop --time=30 strecker-worker
+
+# Graceful shutdown: worker finishes current job on SIGTERM.
+TimeoutStopSec=600
+KillMode=mixed
+KillSignal=SIGTERM
+
+[Install]
+WantedBy=multi-user.target

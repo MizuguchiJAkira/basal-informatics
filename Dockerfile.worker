@@ -1,0 +1,43 @@
+# Strecker worker image — full ML stack (PyTorch + SpeciesNet).
+# Runs on a dedicated Droplet, not on App Platform. Size is ~3GB, so
+# build it on the Droplet itself (or push to Docker Hub / DO Container
+# Registry if you need multi-node deploys later).
+
+FROM python:3.11-slim
+
+WORKDIR /app
+
+# System deps
+#   - build-essential + gcc for psycopg2 / pydantic-core wheels
+#   - libpq-dev for psycopg2 runtime
+#   - libgl1 + libglib2.0-0 for OpenCV / torchvision image decoding
+RUN apt-get update && apt-get install -y --no-install-recommends \
+      build-essential gcc libpq-dev \
+      libgl1 libglib2.0-0 libsm6 libxext6 libxrender1 \
+      && rm -rf /var/lib/apt/lists/*
+
+# Web-tier deps (shared)
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Worker-only deps: PyTorch + SpeciesNet. Pin torch CPU to keep image sane;
+# swap to CUDA wheels if you move to a GPU droplet.
+# speciesnet>=5 pulls torch + torchvision transitively.
+RUN pip install --no-cache-dir \
+      --extra-index-url https://download.pytorch.org/whl/cpu \
+      torch torchvision \
+  && pip install --no-cache-dir speciesnet>=5.0
+
+# App code
+COPY . .
+
+# Create local scratch dirs (worker uses /tmp for actual work)
+RUN mkdir -p uploads reports instance
+
+ENV PYTHONUNBUFFERED=1 \
+    LOG_LEVEL=INFO
+
+# Smoke test: fail fast if imports don't resolve
+RUN python -c "from strecker import worker; print('worker import OK')"
+
+CMD ["python", "-m", "strecker.worker"]

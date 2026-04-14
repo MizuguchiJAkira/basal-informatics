@@ -1,26 +1,37 @@
 """Upload routes — hunter photo upload interface.
 
 GET  /upload   — Upload form
-POST /upload   — Accept ZIP, trigger Strecker pipeline, redirect to results
+POST /upload   — Accept ZIP, enqueue for worker, redirect to results
 GET  /upload/status/<job_id> — Poll endpoint for async job status
+
+Architecture:
+  - Web container accepts the ZIP, validates it, pushes to Spaces, then
+    writes a ProcessingJob row with status='queued' and zip_key set.
+  - A separate worker Droplet polls `processing_jobs WHERE status='queued'`,
+    claims a row, downloads the ZIP, runs the pipeline, uploads artifacts,
+    marks status='complete'.
+  - Demo mode (no real photos) still runs inline in the web container since
+    there's no ZIP to ship — it uses bundled demo fixtures.
 """
 
 import json
 import logging
-import shutil
+import os
+import tempfile
 import threading
 import uuid
 import zipfile
-from pathlib import Path
 from collections import defaultdict
 from datetime import datetime
+from pathlib import Path
 
 from flask import (
-    Blueprint, current_app, redirect, render_template, request, url_for,
-    jsonify,
+    Blueprint, current_app, jsonify, redirect, render_template, request,
+    url_for,
 )
 
 from config import settings
+from strecker import storage
 
 upload_bp = Blueprint("upload", __name__)
 logger = logging.getLogger(__name__)
@@ -39,22 +50,17 @@ def _get_job(job_id: str) -> dict:
         if job_id in _jobs:
             return _jobs[job_id].copy()
 
-    # Fall back to DB (survives server restarts)
     try:
         from db.models import ProcessingJob
-        from web.app import db as _unused  # ensure app context
-        from flask import current_app
-        with current_app.app_context():
-            pj = ProcessingJob.query.filter_by(job_id=job_id).first()
-            if pj:
-                return pj.to_dict()
+        pj = ProcessingJob.query.filter_by(job_id=job_id).first()
+        if pj:
+            return pj.to_dict()
     except Exception:
-        pass
+        logger.exception("Failed to load job %s from DB", job_id)
     return None
 
 
 def _set_job(job_id: str, data: dict):
-    """Update job in both memory cache and DB."""
     with _jobs_lock:
         if job_id in _jobs:
             _jobs[job_id].update(data)
@@ -63,7 +69,7 @@ def _set_job(job_id: str, data: dict):
 
 
 def _persist_job(job_id: str, app):
-    """Persist current job state to the database."""
+    """Persist current in-memory job state to the database."""
     try:
         with app.app_context():
             from db.models import db, ProcessingJob
@@ -75,59 +81,28 @@ def _persist_job(job_id: str, app):
             with _jobs_lock:
                 data = _jobs.get(job_id, {})
 
-            pj.property_name = data.get("property_name")
-            pj.status = data.get("status", "queued")
-            pj.error_message = data.get("error_message")
-            pj.n_photos = data.get("n_photos")
-            pj.n_species = data.get("n_species")
-            pj.n_events = data.get("n_events")
-            pj.report_path = data.get("report_path")
-            pj.appendix_path = data.get("appendix_path")
-            pj.completed_at = (
-                datetime.fromisoformat(data["completed_at"])
-                if data.get("completed_at") else None
-            )
-            species = data.get("species", [])
-            if species:
-                pj.species_json = json.dumps(species)
+            # Scalar fields
+            for col in ("property_name", "state", "status", "error_message",
+                        "n_photos", "n_species", "n_events",
+                        "report_path", "appendix_path",
+                        "zip_key", "report_key", "appendix_key",
+                        "demo"):
+                if col in data:
+                    setattr(pj, col, data[col])
+
+            if "completed_at" in data and data["completed_at"]:
+                pj.completed_at = datetime.fromisoformat(data["completed_at"])
+
+            if "species" in data and data["species"]:
+                pj.species_json = json.dumps(data["species"])
 
             db.session.commit()
     except Exception:
-        logger.exception(f"Failed to persist job {job_id} to DB")
+        logger.exception("Failed to persist job %s to DB", job_id)
 
 
-def _cleanup_extracted(job_id: str):
-    """Remove extracted images after processing to reclaim disk space.
-
-    Keeps the report PDF and appendix CSV but deletes the extracted
-    source photos which are the bulk of disk usage.
-    """
-    try:
-        extract_dir = Path(settings.UPLOAD_DIR) / job_id
-        if not extract_dir.exists():
-            return
-
-        # Delete extracted_ subdirectories (raw photos)
-        for child in extract_dir.iterdir():
-            if child.is_dir() and child.name.startswith("extracted_"):
-                shutil.rmtree(child, ignore_errors=True)
-                logger.info(f"Cleaned up extracted photos: {child}")
-
-        # Delete the upload.zip itself
-        zip_file = extract_dir / "upload.zip"
-        if zip_file.exists():
-            zip_file.unlink(missing_ok=True)
-            logger.info(f"Cleaned up upload ZIP: {zip_file}")
-    except Exception:
-        logger.exception(f"Cleanup failed for job {job_id}")
-
-
-def _run_pipeline(job_id: str, zip_path: str, property_name: str,
-                  demo: bool, state: str = None, app=None):
-    """Run the Strecker pipeline (in background thread).
-
-    Updates _jobs[job_id] with results or error, persists to DB.
-    """
+def _run_demo_pipeline(job_id: str, property_name: str, app):
+    """Run the demo pipeline inline (no real ZIP, bundled fixtures)."""
     try:
         from strecker.ingest import ingest
         from strecker.classify import classify
@@ -135,33 +110,23 @@ def _run_pipeline(job_id: str, zip_path: str, property_name: str,
         from config.species_reference import SPECIES_REFERENCE
 
         _set_job(job_id, {"status": "processing"})
-
-        # Ingest: extract ZIP + run SpeciesNet (or load demo data)
-        if demo:
-            photos = ingest(demo=True)
-        else:
-            extract_dir = str(Path(zip_path).parent / f"extracted_{job_id}")
-            photos = ingest(zip_path=zip_path, extract_dir=extract_dir, state=state)
+        photos = ingest(demo=True)
 
         _set_job(job_id, {"status": "classifying"})
-
-        # Classify: temperature scaling, temporal priors, entropy routing
-        detections = classify(photos, demo=demo)
+        detections = classify(photos, demo=True)
 
         _set_job(job_id, {"status": "reporting"})
-
-        # Generate PDF report
-        output_dir = Path(settings.UPLOAD_DIR) / job_id / "output"
-        output_dir.mkdir(parents=True, exist_ok=True)
+        output_dir = Path(tempfile.mkdtemp(prefix=f"demo_{job_id}_"))
         report_path = str(output_dir / "game_inventory_report.pdf")
         generate_report(
-            detections,
-            output_path=report_path,
-            property_name=property_name,
-            demo=demo,
+            detections, output_path=report_path,
+            property_name=property_name, demo=True,
         )
 
-        # Build species summary for results page
+        # Upload artifacts to Spaces so /download works the same way as real jobs
+        r_key = storage.report_key(job_id)
+        storage.put_file(report_path, r_key, content_type="application/pdf")
+
         species_stats = defaultdict(lambda: {
             "events": set(), "photos": 0, "cameras": set()
         })
@@ -172,20 +137,16 @@ def _run_pipeline(job_id: str, zip_path: str, property_name: str,
             sp["cameras"].add(det.camera_id)
 
         species_list = []
-        for sp_key, stats in sorted(
-                species_stats.items(),
-                key=lambda x: -len(x[1]["events"])):
+        for sp_key, stats in sorted(species_stats.items(),
+                                    key=lambda x: -len(x[1]["events"])):
             ref = SPECIES_REFERENCE.get(sp_key, {})
             species_list.append({
-                "common_name": ref.get(
-                    "common_name",
-                    sp_key.replace("_", " ").title()
-                ),
+                "common_name": ref.get("common_name",
+                                       sp_key.replace("_", " ").title()),
                 "events": len(stats["events"]),
                 "photos": stats["photos"],
                 "cameras": len(stats["cameras"]),
             })
-
         n_events = sum(s["events"] for s in species_list)
 
         _set_job(job_id, {
@@ -193,38 +154,21 @@ def _run_pipeline(job_id: str, zip_path: str, property_name: str,
             "n_photos": f"{len(detections):,}",
             "n_species": len(species_list),
             "n_events": f"{n_events:,}",
-            "report_path": report_path,
-            "appendix_path": str(output_dir / "events_appendix.csv"),
+            "report_key": r_key,
             "species": species_list,
             "completed_at": datetime.utcnow().isoformat(),
         })
-
-        logger.info(
-            f"Job {job_id} complete: {len(detections)} detections, "
-            f"{len(species_list)} species, {n_events} events"
-        )
-
-        # Persist final state to DB
-        if app:
-            _persist_job(job_id, app)
-
-        # Cleanup extracted photos to reclaim disk space
-        if not demo:
-            _cleanup_extracted(job_id)
+        _persist_job(job_id, app)
 
     except Exception as e:
-        logger.exception(f"Pipeline failed for job {job_id}")
-        _set_job(job_id, {
-            "status": "error",
-            "error_message": str(e),
-        })
-        if app:
-            _persist_job(job_id, app)
+        logger.exception("Demo pipeline failed for job %s", job_id)
+        _set_job(job_id, {"status": "error", "error_message": str(e)})
+        _persist_job(job_id, app)
 
 
 @upload_bp.route("/upload", methods=["GET", "POST"])
 def upload():
-    """GET: show upload form. POST: process uploaded photos."""
+    """GET: show upload form. POST: accept ZIP and enqueue."""
     if request.method == "GET":
         return render_template("upload.html")
 
@@ -232,94 +176,104 @@ def upload():
     property_name = request.form.get("property_name", "My Property")
     state = request.form.get("state", "TX")
     demo_mode = current_app.config.get("DEMO_MODE", False)
+    app = current_app._get_current_object()
 
     _set_job(job_id, {
         "job_id": job_id,
         "status": "queued",
         "property_name": property_name,
+        "state": state,
+        "demo": demo_mode,
         "submitted_at": datetime.utcnow().isoformat(),
     })
 
+    # ── Demo path: no ZIP, run inline with bundled fixtures ──
     if demo_mode:
-        _run_pipeline(job_id, zip_path=None, property_name=property_name,
-                      demo=True, app=current_app._get_current_object())
+        _persist_job(job_id, app)
+        thread = threading.Thread(
+            target=_run_demo_pipeline,
+            args=(job_id, property_name, app),
+            daemon=True,
+        )
+        thread.start()
         return redirect(url_for("results.results", job_id=job_id))
 
-    # ── Production mode: handle real file upload ──
-
+    # ── Production path: upload ZIP to object storage, let worker handle it ──
     uploaded_file = request.files.get("photos")
     if not uploaded_file or uploaded_file.filename == "":
         _set_job(job_id, {"status": "error", "error_message": "No file uploaded"})
+        _persist_job(job_id, app)
         return redirect(url_for("results.results", job_id=job_id))
 
-    # Validate file type
-    filename = uploaded_file.filename.lower()
-    if not filename.endswith(".zip"):
-        _set_job(job_id, {"status": "error", "error_message": "Please upload a ZIP file"})
+    if not uploaded_file.filename.lower().endswith(".zip"):
+        _set_job(job_id, {"status": "error",
+                          "error_message": "Please upload a ZIP file"})
+        _persist_job(job_id, app)
         return redirect(url_for("results.results", job_id=job_id))
 
-    # Save uploaded file
-    upload_dir = Path(settings.UPLOAD_DIR) / job_id
-    upload_dir.mkdir(parents=True, exist_ok=True)
-    zip_path = str(upload_dir / "upload.zip")
-    uploaded_file.save(zip_path)
-
-    file_size = Path(zip_path).stat().st_size
-    if file_size > MAX_UPLOAD_BYTES:
-        _set_job(job_id, {
-            "status": "error",
-            "error_message": (
-                f"File too large ({file_size // (1024*1024)} MB). "
-                f"Maximum is {MAX_UPLOAD_BYTES // (1024*1024)} MB."
-            ),
-        })
-        Path(zip_path).unlink(missing_ok=True)
-        return redirect(url_for("results.results", job_id=job_id))
-
-    # Validate ZIP integrity before spawning the pipeline
+    # Stream to /tmp so we don't rely on the container filesystem
+    tmpdir = tempfile.mkdtemp(prefix=f"upload_{job_id}_")
+    local_zip = os.path.join(tmpdir, "upload.zip")
     try:
-        with zipfile.ZipFile(zip_path, "r") as zf:
-            bad = zf.testzip()
-            if bad is not None:
-                raise zipfile.BadZipFile(f"Corrupt file in ZIP: {bad}")
-            # Check that the ZIP actually contains image files
-            image_exts = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp"}
-            has_images = any(
-                Path(n).suffix.lower() in image_exts
-                for n in zf.namelist()
-                if not n.startswith("__MACOSX") and not n.endswith("/")
-            )
-            if not has_images:
-                _set_job(job_id, {
-                    "status": "error",
-                    "error_message": "ZIP file contains no image files (.jpg, .png, .tif).",
-                })
-                Path(zip_path).unlink(missing_ok=True)
-                return redirect(url_for("results.results", job_id=job_id))
-    except zipfile.BadZipFile as e:
+        uploaded_file.save(local_zip)
+
+        file_size = os.path.getsize(local_zip)
+        if file_size > MAX_UPLOAD_BYTES:
+            _set_job(job_id, {
+                "status": "error",
+                "error_message": (
+                    f"File too large ({file_size // (1024*1024)} MB). "
+                    f"Maximum is {MAX_UPLOAD_BYTES // (1024*1024)} MB."
+                ),
+            })
+            _persist_job(job_id, app)
+            return redirect(url_for("results.results", job_id=job_id))
+
+        # Validate ZIP integrity + has images
+        try:
+            with zipfile.ZipFile(local_zip, "r") as zf:
+                bad = zf.testzip()
+                if bad is not None:
+                    raise zipfile.BadZipFile(f"Corrupt file in ZIP: {bad}")
+                image_exts = {".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp"}
+                has_images = any(
+                    Path(n).suffix.lower() in image_exts
+                    for n in zf.namelist()
+                    if not n.startswith("__MACOSX") and not n.endswith("/")
+                )
+                if not has_images:
+                    _set_job(job_id, {
+                        "status": "error",
+                        "error_message": "ZIP contains no image files.",
+                    })
+                    _persist_job(job_id, app)
+                    return redirect(url_for("results.results", job_id=job_id))
+        except zipfile.BadZipFile as e:
+            _set_job(job_id, {"status": "error",
+                              "error_message": f"Invalid ZIP: {e}"})
+            _persist_job(job_id, app)
+            return redirect(url_for("results.results", job_id=job_id))
+
+        # Push to object storage
+        zip_key = storage.upload_zip_key(job_id)
+        storage.put_file(local_zip, zip_key, content_type="application/zip")
+
         _set_job(job_id, {
-            "status": "error",
-            "error_message": f"Invalid or corrupt ZIP file: {e}",
+            "status": "queued",
+            "zip_key": zip_key,
         })
-        Path(zip_path).unlink(missing_ok=True)
-        return redirect(url_for("results.results", job_id=job_id))
+        _persist_job(job_id, app)
+        logger.info("Job %s queued: %d KB -> %s (property '%s')",
+                    job_id, file_size // 1024, zip_key, property_name)
 
-    logger.info(
-        f"Job {job_id}: received {file_size // 1024} KB upload "
-        f"for property '{property_name}'"
-    )
-
-    # Persist initial state to DB
-    app = current_app._get_current_object()
-    _persist_job(job_id, app)
-
-    # Run pipeline in background thread
-    thread = threading.Thread(
-        target=_run_pipeline,
-        args=(job_id, zip_path, property_name, False, state, app),
-        daemon=True,
-    )
-    thread.start()
+    finally:
+        # Local temp copy no longer needed; authoritative copy is in Spaces.
+        try:
+            if os.path.exists(local_zip):
+                os.unlink(local_zip)
+            os.rmdir(tmpdir)
+        except Exception:
+            pass
 
     return redirect(url_for("results.results", job_id=job_id))
 

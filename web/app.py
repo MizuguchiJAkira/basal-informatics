@@ -198,6 +198,9 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
     app.config["SECRET_KEY"] = settings.SECRET_KEY
     app.config["SQLALCHEMY_DATABASE_URI"] = settings.DATABASE_URL
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    # Pooling only applies to non-SQLite backends (Postgres/MySQL).
+    if not settings.DATABASE_URL.startswith("sqlite"):
+        app.config["SQLALCHEMY_ENGINE_OPTIONS"] = settings.SQLALCHEMY_ENGINE_OPTIONS
     app.config["DEMO_MODE"] = demo
     app.config["SITE"] = site
 
