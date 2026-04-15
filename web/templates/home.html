@@ -197,8 +197,10 @@
                 <a href="/properties/1/upload" class="text-teal-600 text-sm font-semibold hover:underline">Try uploading &rarr;</a>
             </div>
             <div class="demo-frame-wrap rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg md:order-1">
-                <div class="demo-frame" data-scroll-y="0">
-                    <iframe src="/properties/1/upload" loading="lazy" tabindex="-1"></iframe>
+                <div class="demo-frame">
+                    <img src="{{ url_for('static', filename='marketing/preview-upload.png') }}"
+                         alt="Drag-and-drop ZIP upload with processing status"
+                         loading="lazy">
                 </div>
             </div>
         </div>
@@ -220,8 +222,10 @@
                 <a href="/properties/1/dashboard" class="text-teal-600 text-sm font-semibold hover:underline">View demo dashboard &rarr;</a>
             </div>
             <div class="demo-frame-wrap rounded-xl overflow-hidden border border-gray-200 dark:border-gray-700 shadow-lg">
-                <div class="demo-frame demo-frame-scroll" data-scroll-y="3000" data-scroll-duration="16000" data-initial-offset="200">
-                    <iframe src="/properties/1/dashboard" loading="lazy" tabindex="-1"></iframe>
+                <div class="demo-frame">
+                    <img src="{{ url_for('static', filename='marketing/preview-dashboard.png') }}"
+                         alt="Strecker dashboard with species inventory, activity heatmap, and camera leaderboards"
+                         loading="lazy">
                 </div>
             </div>
         </div>
@@ -240,65 +244,16 @@
         width: 100%;
         height: 340px;
         overflow: hidden;
+        background: #1A1A1A;
     }
-    .demo-frame iframe {
-        position: absolute;
-        top: 0; left: 0;
-        width: 200%;
-        height: 6000px;
-        transform: scale(0.5);
-        transform-origin: top left;
-        border: none;
-        pointer-events: none;
+    .demo-frame img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: top center;
+        display: block;
     }
 </style>
-
-<script>
-(function() {
-    // Auto-scroll the dashboard iframe to slowly pan through the page
-    const scrollFrames = document.querySelectorAll('.demo-frame-scroll');
-    scrollFrames.forEach(frame => {
-        const iframe = frame.querySelector('iframe');
-        const maxY = parseInt(frame.dataset.scrollY || '0');
-        const duration = parseInt(frame.dataset.scrollDuration || '8000');
-        const initialOffset = parseInt(frame.dataset.initialOffset || '0');
-
-        if (maxY <= 0) return;
-
-        // Set initial offset immediately so it doesn't start blank
-        iframe.style.transform = `scale(0.5) translateY(-${initialOffset}px)`;
-
-        iframe.addEventListener('load', () => {
-            let start = null;
-
-            function animate(timestamp) {
-                if (!start) start = timestamp;
-                const elapsed = (timestamp - start) % (duration * 2);
-                let progress;
-
-                if (elapsed < duration) {
-                    progress = elapsed / duration;
-                } else {
-                    progress = 1 - (elapsed - duration) / duration;
-                }
-
-                // Ease in-out
-                progress = progress < 0.5
-                    ? 2 * progress * progress
-                    : 1 - Math.pow(-2 * progress + 2, 2) / 2;
-
-                const scrollY = initialOffset + progress * (maxY - initialOffset);
-                iframe.style.transform = `scale(0.5) translateY(-${scrollY}px)`;
-
-                requestAnimationFrame(animate);
-            }
-
-            // Start after iframes have rendered content
-            setTimeout(() => requestAnimationFrame(animate), 2000);
-        });
-    });
-})();
-</script>
 
 <!-- Features -->
 <section class="py-16 border-t border-gray-200 dark:border-gray-700">
