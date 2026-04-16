@@ -41,6 +41,31 @@ DETECTION_RADIUS = {"large": 200, "medium": 150, "small": 100}
 PLACEMENT_CONTEXTS = ["trail", "feeder", "food_plot", "water", "random", "other"]
 TRAIL_FEEDER_INFLATION_FACTOR = 9.7  # Kolowski & Forrester 2017
 
+# --- Population estimation (Random Encounter Model, Rowcliffe et al. 2008) ---
+# REM: D = (y/t) * pi / (v * r * (2 + theta))
+#   y/t = detections per camera-day (computed)
+#   v   = avg daily travel distance, km/day (per species, below)
+#   r   = camera detection radius, km (typical IR trail cam ~15 m)
+#   theta = camera detection angle, radians (typical IR ~40 deg = 0.7 rad)
+#
+# Density output is animals/km^2.
+# Sources cite published per-species daily-distance estimates; sd captures
+# inter-individual variability used in bootstrap CI.
+SPECIES_MOVEMENT = {
+    "feral_hog":         {"v_km_day": 6.0,  "v_sd": 2.5, "source": "Kay et al. 2017; McClure et al. 2015"},
+    "white_tailed_deer": {"v_km_day": 1.5,  "v_sd": 0.8, "source": "Webb et al. 2010"},
+    "axis_deer":         {"v_km_day": 3.0,  "v_sd": 1.2, "source": "literature range; TX-specific scarce"},
+    "coyote":            {"v_km_day": 10.0, "v_sd": 4.0, "source": "Andelt 1985"},
+    # Species without a published v fall back to detection-rate index only
+    # (no density output; recommendation flag explains).
+}
+CAMERA_DETECTION_RADIUS_M  = 15.0   # meters; default for medium IR trail cams
+CAMERA_DETECTION_ANGLE_RAD = 0.7    # ~40 degrees
+REM_BOOTSTRAP_N            = 1000   # nonparametric bootstrap iterations
+MIN_CAMERA_DAYS_FOR_DENSITY = 100   # below: insufficient_data
+MIN_DETECTIONS_FOR_DENSITY  = 20
+DENSITY_CI_RATIO_THRESHOLD  = 1.5   # CI upper/lower > this => recommend supplementary survey
+
 # --- Financial modeling ---
 DISCOUNT_RATE = 0.05  # For 10-year NPV projections
 

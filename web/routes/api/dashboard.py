@@ -10,6 +10,7 @@ from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
 from sqlalchemy import func
 
+from config import settings
 from db.models import db, Property, Camera, Season, DetectionSummary, CoverageScore
 from strecker.coverage import calculate_coverage
 
@@ -694,4 +695,114 @@ def dashboard_photos(pid):
         "page": page,
         "pages": pages,
         "species_list": sorted(set(p["species_key"] for p in photos)),
+    })
+
+
+# ---------------------------------------------------------------------------
+# 9. Population estimates (REM density per species, with CI + caveats)
+# ---------------------------------------------------------------------------
+
+@dashboard_api_bp.route(
+    "/properties/<int:pid>/dashboard/population", methods=["GET"]
+)
+@login_required
+def dashboard_population(pid):
+    """Per-species REM density estimates with bootstrap 95% CIs and
+    plain-language caveats / recommendation flags.
+
+    Camera-days for each (camera, species) pair = season length, since
+    we don't track per-camera deployment dates yet. When that lands,
+    swap to the per-camera active-day count.
+    """
+    from risk.population import (
+        CameraSurveyEffort,
+        estimate_for_property,
+    )
+
+    prop = _get_user_property(pid)
+    if not prop:
+        return jsonify({"error": "Property not found"}), 404
+
+    season_id = request.args.get("season_id", type=int)
+    if not season_id:
+        return jsonify({"error": "season_id query parameter required"}), 400
+
+    season = _get_season(season_id, pid)
+    if not season:
+        return jsonify({"error": "Season not found"}), 404
+
+    season_days = 0
+    if season.start_date and season.end_date:
+        season_days = max(1, (season.end_date - season.start_date).days)
+
+    # Pull the cameras + their placement_context for caveat generation.
+    cameras = {c.id: c for c in
+               Camera.query.filter_by(property_id=pid).all()}
+
+    # Build {species_key: [CameraSurveyEffort, ...]} from DetectionSummary.
+    detections = _detection_query(pid, season_id).all()
+    by_species = {}
+    for d in detections:
+        cam = cameras.get(d.camera_id)
+        if cam is None:
+            continue
+        eff = CameraSurveyEffort(
+            camera_id=d.camera_id,
+            camera_days=float(season_days),
+            detections=int(d.independent_events or 0),
+            placement_context=cam.placement_context,
+        )
+        by_species.setdefault(d.species_key, []).append(eff)
+
+    estimates = estimate_for_property(by_species)
+
+    return jsonify({
+        "property": {
+            "id": prop.id,
+            "name": prop.name,
+            "acreage": prop.acreage,
+        },
+        "season": {
+            "id": season.id,
+            "name": season.name,
+            "days": season_days,
+        },
+        "method": {
+            "estimator": "Random Encounter Model (Rowcliffe et al. 2008)",
+            "ci": "Bootstrap 95% (1000 iterations over cameras + parametric "
+                  "perturbation of daily travel distance)",
+            "camera_radius_m": settings.CAMERA_DETECTION_RADIUS_M,
+            "camera_angle_rad": settings.CAMERA_DETECTION_ANGLE_RAD,
+        },
+        "estimates": [
+            {
+                "species_key": e.species_key,
+                "common_name": COMMON_NAMES.get(
+                    e.species_key, e.species_key.replace("_", " ").title()),
+                "detection_rate_per_camera_day": (
+                    round(e.detection_rate, 4) if e.detection_rate is not None
+                    else None
+                ),
+                "density_animals_per_km2": (
+                    round(e.density_mean, 2) if e.density_mean is not None
+                    else None
+                ),
+                "density_ci_low": (
+                    round(e.density_ci_low, 2) if e.density_ci_low is not None
+                    else None
+                ),
+                "density_ci_high": (
+                    round(e.density_ci_high, 2) if e.density_ci_high is not None
+                    else None
+                ),
+                "n_cameras": e.n_cameras,
+                "total_camera_days": e.total_camera_days,
+                "total_detections": e.total_detections,
+                "recommendation": e.recommendation,
+                "caveats": e.caveats,
+                "method_notes": e.method_notes,
+                "bootstrap_n": e.bootstrap_n,
+            }
+            for e in estimates
+        ],
     })
