@@ -526,14 +526,15 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
 
     function showEmpty() {
         document.getElementById('empty-state').classList.remove('hidden');
-        ['kpi-bar','species-grid','buck-doe-section','coverage-section'].forEach(id => {
+        ['kpi-bar','species-grid','buck-doe-section','coverage-section',
+         'population-section','photo-gallery-section'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.add('hidden');
         });
     }
     function hideEmpty() {
         document.getElementById('empty-state').classList.add('hidden');
-        ['kpi-bar','species-grid'].forEach(id => {
+        ['kpi-bar','species-grid','population-section','photo-gallery-section'].forEach(id => {
             const el = document.getElementById(id);
             if (el) el.classList.remove('hidden');
         });
