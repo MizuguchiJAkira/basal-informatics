@@ -54,7 +54,11 @@ def _client():
         aws_secret_access_key=settings.SPACES_SECRET,
         config=Config(
             signature_version="s3v4",
-            retries={"max_attempts": 3, "mode": "standard"},
+            # Hard cap on boto3 operations so a misconfigured Space fails
+            # fast instead of hanging the whole HTTP request for minutes.
+            connect_timeout=10,
+            read_timeout=30,
+            retries={"max_attempts": 2, "mode": "standard"},
         ),
     )
     return _s3_client
