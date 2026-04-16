@@ -1201,8 +1201,10 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
                 </div>
             `;
 
-            L.marker([cam.lat, cam.lon], { icon })
+            const label = cam.label || cam.camera_label || cam.name || 'Camera';
+            L.marker([cam.lat, cam.lon], { icon, title: label })
                 .bindPopup(popup)
+                .bindTooltip(label, { permanent: false, direction: 'top', opacity: 0.9 })
                 .addTo(dashMap);
         });
     }
