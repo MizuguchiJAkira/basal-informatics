@@ -456,23 +456,51 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
         buf.seek(0)
         return send_file(buf, mimetype="image/jpeg")
 
-    # Create tables
+    # Create tables — gated by a Postgres advisory lock so only one gunicorn
+    # worker does schema work at a time (avoids create_all/ALTER deadlocks).
     with app.app_context():
-        db.create_all()
-
-        # Additive column migrations — each wrapped so pre-existing columns
-        # don't abort the boot. Works on SQLite and Postgres.
-        _additive_migrations = [
-            "ALTER TABLE users ADD COLUMN is_owner BOOLEAN DEFAULT 0",
-            "ALTER TABLE processing_jobs ADD COLUMN property_id INTEGER",
-            "ALTER TABLE processing_jobs ADD COLUMN upload_id INTEGER",
-        ]
-        for stmt in _additive_migrations:
+        dialect = db.engine.dialect.name
+        got_lock = False
+        if dialect == "postgresql":
             try:
-                db.session.execute(db.text(stmt))
-                db.session.commit()
+                row = db.session.execute(
+                    db.text("SELECT pg_try_advisory_lock(:k)"),
+                    {"k": 0x5712EC_BA5A_1},  # arbitrary app-scoped key
+                ).scalar()
+                got_lock = bool(row)
             except Exception:
-                db.session.rollback()  # column already exists
+                db.session.rollback()
+                got_lock = False
+        else:
+            got_lock = True  # SQLite: single writer anyway
+
+        if got_lock:
+            try:
+                db.create_all()
+
+                # Additive column migrations — each wrapped so pre-existing
+                # columns don't abort the boot. Works on SQLite and Postgres.
+                _additive_migrations = [
+                    "ALTER TABLE users ADD COLUMN is_owner BOOLEAN DEFAULT 0",
+                    "ALTER TABLE processing_jobs ADD COLUMN property_id INTEGER",
+                    "ALTER TABLE processing_jobs ADD COLUMN upload_id INTEGER",
+                ]
+                for stmt in _additive_migrations:
+                    try:
+                        db.session.execute(db.text(stmt))
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()  # column already exists
+            finally:
+                if dialect == "postgresql":
+                    try:
+                        db.session.execute(
+                            db.text("SELECT pg_advisory_unlock(:k)"),
+                            {"k": 0x5712EC_BA5A_1},
+                        )
+                        db.session.commit()
+                    except Exception:
+                        db.session.rollback()
 
         # Seed demo accounts and data
         if demo:

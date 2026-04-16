@@ -15,10 +15,13 @@ from web.app import create_app
 # Determine mode from environment
 _demo = os.environ.get("DEMO_MODE", "0") == "1"
 
-# Pre-built application objects for Gunicorn
-strecker_app = create_app(demo=_demo, site="strecker")
-basal_app = create_app(demo=_demo, site="basal")
-
-# Default: whatever SITE env var says (falls back to strecker)
+# Build only the app for the active SITE. Building both doubles boot time
+# and causes N workers × 2 apps = 2N concurrent db.create_all() + migrations
+# against the shared Postgres, which can exceed the health-check window.
 _site = os.environ.get("SITE", "strecker")
-app = strecker_app if _site == "strecker" else basal_app
+if _site == "basal":
+    basal_app = create_app(demo=_demo, site="basal")
+    app = basal_app
+else:
+    strecker_app = create_app(demo=_demo, site="strecker")
+    app = strecker_app
