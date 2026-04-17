@@ -1,3 +1,106 @@
+# Session Log — 2026-04-17 (lender pivot) — newest first
+
+## 2026-04-17 late evening — strategic pivot: Strecker → lender-first Basal
+
+### Context
+
+Go-to-market changed from "hunter consumer app funnels data to Basal via
+TOS data license" (arbitrage) to "ag lender requires landowners to upload
+trail cam photos direct to Basal as collateral documentation" (direct
+lender integration). Strecker remains a separate consumer product for
+hunters and the neighboring-lease camera-coverage expansion channel.
+
+### What shipped (oldest first, `9bbba09 .. 71a3ac8`)
+
+```
+9bbba09 feat(basal): LenderClient model + Property.lender_client_id/crop_type
+848b953 feat(basal): Feral Hog Exposure Score — tier + 0-100 score + damage projection
+bb37520 feat(basal): /lender portfolio + Nature Exposure Report routes + UI
+28cc71e seed: Farm Credit of Central Texas + 5-parcel portfolio
+71a3ac8 feat+docs: portfolio sort fix + YC-partner lender-framed demo narrative
+```
+
+Plus an App Platform spec change: `SITE=strecker → SITE=basal` on the live
+container, so `/lender/` routes now mount. Strecker hunter-side routes
+(/properties/1/dashboard, etc.) are temporarily unreachable on this
+container — per strategic spec, they move to their own container + repo
+later. The code is still in the monorepo untouched.
+
+### Demo URL for YC partners
+
+<https://monkfish-app-ju2lv.ondigitalocean.app/lender/fcct/>
+
+Login: jonahakiracheng@gmail.com (now `is_owner=TRUE` via the seed) /
+PilotSmoke-d4e5ab. Change before demo day.
+
+### What renders
+
+Portfolio page (`/lender/fcct/`):
+  - "Farm Credit of Central Texas · 5 parcels under assessment"
+  - Tier-tally chips: 1 Severe · 1 Elevated · 1 Moderate · 1 Low
+  - Dense table sorted Severe → Low → Pending, each row linking to its
+    Nature Exposure Report
+  - Parcel IDs rendered `TX-BRA-2026-00002` etc.
+
+Per-parcel Nature Exposure Report:
+  - Metadata strip: county, state, acreage, crop class, cameras, survey period
+  - Headline: Feral Hog Exposure Score (0–100 + gradient bar + tier badge + 95% CI)
+  - Modeled dollar projection with crop-modifier disclosure + "not a pipeline output" callout
+  - Recommendation + caveats block
+  - Other-species informational cards
+  - Methodology footer citing Rowcliffe 2008 + Mayer & Brisbin 2009
+
+### Portfolio details (live data)
+
+| Parcel                  | Crop     | Acres | Tier     | Score | Density   | $/yr     |
+|-------------------------|----------|------:|----------|------:|----------:|---------:|
+| Riverbend Farm          | corn     |   650 | Severe   |  91.5 | 16.61/km² | $28,306  |
+| Edwards Plateau Ranch   | sorghum  | 2,340 | Elevated |  50.6 |  5.13/km² | $25,561  |
+| Oak Ridge Orchards      | peanut   |   180 | Moderate |  36.2 |  3.34/km² |  $1,381  |
+| Highland Meadow Ranch   | pasture  | 4,800 | Low      |   7.0 |  0.56/km² |  $2,192  |
+| Prairie Creek Property  | rangeland | 3,200| Pending  |     — |         — |        — |
+
+### Methodology engine
+
+- REM density estimator reused from earlier session (`risk/population.py`).
+- New `risk/exposure.py`: tier classification per Mayer & Brisbin 2009
+  (Low <2, Moderate 2–5, Elevated 5–10, Severe ≥10 animals/km²), 0–100
+  score piecewise-linear anchored on the tier cutoffs, dollar projection
+  scaled from Anderson 2016 per-hog damage (~$405/hog/yr adjusted)
+  times crop modifier (corn 1.6×, peanut 1.4×, pasture 0.5×, etc.).
+- 17 new tests; 23 old REM tests unaffected; 40/40 total green.
+
+### Strecker untouched
+
+Verified `SITE=strecker` app boots with 53 routes and **0** `/lender/` routes.
+The strategic separation holds at the code level even though we're in a
+monorepo transitionally. When Strecker gets split into its own repo the
+cut point is: `web/routes/properties.py`, `web/routes/upload.py`,
+`web/routes/feedback.py`, `web/routes/results.py`, `web/routes/deer.py`,
+and `web/routes/api/properties.py` + `dashboard.py` + `share.py` +
+`reid.py` + `uploads.py`. The shared shell is `config/`, `db/models.py`,
+`strecker/` (ML pipeline), `risk/` (methodology).
+
+### Decisions deferred to user
+
+1. **Custom domain.** User noted no DNS or host yet. My recommendation:
+   DO Domain Registration (free DNS, one-click App Platform hookup),
+   candidate names already listed in the previous reply.
+2. **DetectionIngest bridge in scope for YC demo?** I've deferred this —
+   the demo narrative doesn't require it. Tell me if you want it in
+   scope for Week 2.
+
+### Remaining Week 1 items
+
+- Replace placeholder preview-*.png on the Strecker marketing home page
+  (those are only visible when the SITE=strecker container is live, so
+  currently not load-bearing — demo-time priority only if we intend to
+  also show Strecker).
+- Custom domain setup (blocked on you).
+- Demo rehearsal (blocked on you).
+
+---
+
 # Session Log — 2026-04-16 evening / 2026-04-17 morning
 
 ## Reading order for first look
