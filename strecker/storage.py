@@ -130,6 +130,80 @@ def presigned_url(key: str, expires_in: Optional[int] = None) -> str:
     return f"local://{key}"
 
 
+def generate_presigned_put(key: str,
+                           expires_in: int = 600,
+                           max_bytes: Optional[int] = None,
+                           content_type: str = "application/zip") -> dict:
+    """Return a pre-signed PUT URL for a direct browser-to-Spaces upload.
+
+    The web container never touches the ZIP bytes — the browser uploads
+    straight to Spaces with this URL. Eliminates the boto3-hang failure
+    class from the request path and scales arbitrarily with upload size.
+
+    Returns:
+        {
+          "upload_url": str,        # the PUT target
+          "key": str,               # the storage key the file will land at
+          "method": "PUT",
+          "headers": {...},         # required Content-Type header
+          "expires_in": int,        # seconds
+          "max_bytes": int|None,    # soft cap surfaced to the UI
+        }
+
+    Local-fs fallback (when SPACES_BUCKET is unset) returns a pseudo-URL
+    the caller MUST NOT actually PUT to; used only in tests.
+    """
+    if _use_spaces():
+        url = _client().generate_presigned_url(
+            "put_object",
+            Params={
+                "Bucket": settings.SPACES_BUCKET,
+                "Key": key,
+                "ContentType": content_type,
+            },
+            ExpiresIn=expires_in,
+            HttpMethod="PUT",
+        )
+    else:
+        url = f"local-put://{settings.UPLOAD_DIR}/{key}"
+    return {
+        "upload_url": url,
+        "key": key,
+        "method": "PUT",
+        "headers": {"Content-Type": content_type},
+        "expires_in": expires_in,
+        "max_bytes": max_bytes,
+    }
+
+
+def head(key: str) -> Optional[dict]:
+    """Return HEAD metadata (size, content-type, etag) or None if missing.
+
+    Used by the /confirm endpoint to verify the browser actually completed
+    the pre-signed PUT before we queue a ProcessingJob.
+    """
+    if _use_spaces():
+        try:
+            r = _client().head_object(Bucket=settings.SPACES_BUCKET, Key=key)
+            return {
+                "size_bytes": int(r.get("ContentLength") or 0),
+                "content_type": r.get("ContentType"),
+                "etag": (r.get("ETag") or "").strip('"'),
+                "last_modified": r.get("LastModified").isoformat() if r.get("LastModified") else None,
+            }
+        except Exception:
+            return None
+    p = Path(settings.UPLOAD_DIR) / key
+    if not p.exists():
+        return None
+    return {
+        "size_bytes": p.stat().st_size,
+        "content_type": "application/zip",
+        "etag": None,
+        "last_modified": None,
+    }
+
+
 def exists(key: str) -> bool:
     if _use_spaces():
         try:

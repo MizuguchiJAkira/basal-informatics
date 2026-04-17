@@ -258,14 +258,17 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
         from web.routes.owner import owner_bp
         from web.routes.api.owner import owner_api_bp
         from web.routes.lender import lender_bp
+        from web.routes.api.parcel_uploads import parcel_uploads_bp
 
         app.register_blueprint(demo_bp)
         app.register_blueprint(owner_bp)
         app.register_blueprint(owner_api_bp)
         app.register_blueprint(lender_bp)
+        app.register_blueprint(parcel_uploads_bp)
 
         # Exempt JSON API endpoints from CSRF (auth via session/token, not cookie)
         csrf.exempt(owner_api_bp)
+        csrf.exempt(parcel_uploads_bp)
         # Lender routes are server-rendered HTML with CSRF on forms only;
         # the JSON exposure endpoint under /lender/api/ is read-only GET.
 
