@@ -363,45 +363,23 @@ def main():
         print(f"  Added CAM-EP-RAND-01 to Edwards Plateau "
               f"(season={ep_season_id}, hog events=100)")
 
-    # 4. Wipe + recreate the net-new parcels idempotently.
-    #    They're identified by the synthetic owner emails we created.
-    emails = [p["owner_email"] for p in PARCELS]
-    cur.execute(
-        "SELECT id FROM users WHERE email = ANY(%s)", (emails,))
-    existing_user_ids = [r[0] for r in cur.fetchall()]
-    if existing_user_ids:
-        # Cascade-safe: uploads -> processing_jobs -> detection_summaries ->
-        # coverage_scores -> share_cards -> seasons -> cameras -> properties -> users
-        cur.execute("""
-            DELETE FROM detection_summaries WHERE season_id IN
-                (SELECT id FROM seasons WHERE property_id IN
-                    (SELECT id FROM properties WHERE user_id = ANY(%s)))
-        """, (existing_user_ids,))
-        cur.execute("""
-            DELETE FROM detection_summaries WHERE camera_id IN
-                (SELECT id FROM cameras WHERE property_id IN
-                    (SELECT id FROM properties WHERE user_id = ANY(%s)))
-        """, (existing_user_ids,))
-        cur.execute("DELETE FROM coverage_scores WHERE property_id IN (SELECT id FROM properties WHERE user_id = ANY(%s))", (existing_user_ids,))
-        cur.execute("DELETE FROM share_cards WHERE property_id IN (SELECT id FROM properties WHERE user_id = ANY(%s))", (existing_user_ids,))
-        cur.execute("DELETE FROM processing_jobs WHERE property_id IN (SELECT id FROM properties WHERE user_id = ANY(%s))", (existing_user_ids,))
-        cur.execute("DELETE FROM uploads WHERE property_id IN (SELECT id FROM properties WHERE user_id = ANY(%s))", (existing_user_ids,))
-        cur.execute("DELETE FROM seasons WHERE property_id IN (SELECT id FROM properties WHERE user_id = ANY(%s))", (existing_user_ids,))
-        cur.execute("DELETE FROM cameras WHERE property_id IN (SELECT id FROM properties WHERE user_id = ANY(%s))", (existing_user_ids,))
-        cur.execute("DELETE FROM properties WHERE user_id = ANY(%s)", (existing_user_ids,))
-        cur.execute("DELETE FROM users WHERE id = ANY(%s)", (existing_user_ids,))
-        print(f"  cleaned {len(existing_user_ids)} prior demo users + cascade")
-
-    # 5. Create the 4 net-new parcels.
+    # 4. UPSERT each parcel by owner_email + property name so the
+    #    auto-increment id stays stable across reseeds. Camera + season
+    #    + detection_summary rows DO get wiped and rebuilt per-property
+    #    each run (so changes to the seed data take effect), but the
+    #    parent property_id never changes — the demo URLs and recorded
+    #    MP4 keep pointing at the same /lender/.../parcel/<N>.
     for p in PARCELS:
         owner_email = p["owner_email"]
         owner_name = p["owner_name"]
         prop_data = p["property"]
 
-        # Placeholder user — password never used (reports aren't landowner-login-gated).
         cur.execute("""
             INSERT INTO users (email, password_hash, display_name, created_at, updated_at)
             VALUES (%s, %s, %s, NOW(), NOW())
+            ON CONFLICT (email) DO UPDATE
+              SET display_name = EXCLUDED.display_name,
+                  updated_at = NOW()
             RETURNING id
         """, (owner_email, "!unset!", owner_name))
         user_id = cur.fetchone()[0]
@@ -412,18 +390,48 @@ def main():
             "geometry": {"type": "Polygon", "coordinates": [prop_data["boundary"]]},
         })
 
+        # Properties has no UNIQUE constraint on (user_id, name) yet, so
+        # do the upsert in two steps: SELECT existing, UPDATE or INSERT.
         cur.execute("""
-            INSERT INTO properties (user_id, name, county, state, acreage,
-                                    boundary_geojson, lender_client_id,
-                                    crop_type, created_at, updated_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
-            RETURNING id
-        """, (user_id, prop_data["name"], prop_data["county"], prop_data["state"],
-              prop_data["acreage"], boundary_geojson, lender_id, prop_data["crop_type"]))
-        property_id = cur.fetchone()[0]
+            SELECT id FROM properties WHERE user_id=%s AND name=%s LIMIT 1
+        """, (user_id, prop_data["name"]))
+        row = cur.fetchone()
+        if row:
+            property_id = row[0]
+            cur.execute("""
+                UPDATE properties
+                SET county=%s, state=%s, acreage=%s,
+                    boundary_geojson=%s, lender_client_id=%s,
+                    crop_type=%s, updated_at=NOW()
+                WHERE id=%s
+            """, (prop_data["county"], prop_data["state"], prop_data["acreage"],
+                  boundary_geojson, lender_id, prop_data["crop_type"], property_id))
+            # Wipe per-property leaf data so cameras/seasons rebuild cleanly.
+            cur.execute("""
+                DELETE FROM detection_summaries WHERE camera_id IN
+                    (SELECT id FROM cameras WHERE property_id=%s)
+            """, (property_id,))
+            cur.execute("""
+                DELETE FROM detection_summaries WHERE season_id IN
+                    (SELECT id FROM seasons WHERE property_id=%s)
+            """, (property_id,))
+            cur.execute("DELETE FROM cameras WHERE property_id=%s", (property_id,))
+            cur.execute("DELETE FROM seasons WHERE property_id=%s", (property_id,))
+            print(f"  {prop_data['name']} (id={property_id}, refreshed)")
+        else:
+            cur.execute("""
+                INSERT INTO properties (user_id, name, county, state, acreage,
+                                        boundary_geojson, lender_client_id,
+                                        crop_type, created_at, updated_at)
+                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, NOW(), NOW())
+                RETURNING id
+            """, (user_id, prop_data["name"], prop_data["county"], prop_data["state"],
+                  prop_data["acreage"], boundary_geojson, lender_id, prop_data["crop_type"]))
+            property_id = cur.fetchone()[0]
+            print(f"  {prop_data['name']} (id={property_id}, NEW — note this id for demo links)")
 
         if p["season"] is None:
-            print(f"  Created {prop_data['name']} (id={property_id}) — pending (no season)")
+            print(f"    \u2192 pending (no season seeded)")
             continue
 
         cur.execute("""
@@ -495,9 +503,7 @@ def main():
 
         n_priors = len(p.get("prior_seasons", []))
         prior_note = f" + {n_priors} prior season(s)" if n_priors else ""
-        print(f"  Created {prop_data['name']} (id={property_id}) "
-              f"— {len(p['cameras'])} camera(s), crop={prop_data['crop_type']}"
-              f"{prior_note}")
+        print(f"    \u2192 {len(p['cameras'])} camera(s), crop={prop_data['crop_type']}{prior_note}")
 
     conn.commit()
 

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}{{ code }} — Basal Informatics{% endblock %}
+{% block content %}
+<div class="max-w-2xl mx-auto py-20 px-6 text-center">
+  <div class="text-6xl font-serif tracking-tight text-slate-700 dark:text-gray-200 mb-3">
+    {{ code }}
+  </div>
+  <h1 class="text-xl font-semibold text-slate-800 dark:text-gray-100 mb-3">
+    {{ headline }}
+  </h1>
+  <p class="text-sm text-slate-500 dark:text-gray-400 mb-8 leading-relaxed">
+    {{ body }}
+  </p>
+  <div class="flex justify-center gap-3 text-sm">
+    <a href="/lender/" class="px-4 py-2 rounded border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800">
+      Lender portfolio
+    </a>
+    <a href="/" class="px-4 py-2 rounded border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800">
+      Home
+    </a>
+  </div>
+  {% if request_id %}
+  <div class="mt-12 text-[11px] text-slate-400 dark:text-gray-600 font-mono">
+    ref {{ request_id }}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -303,9 +303,55 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
             if user:
                 login_user(user)
 
+    # Friendly error pages so a YC partner / loan-review committee
+    # member never sees a Flask traceback or unstyled "Not Found"
+    # page if something hiccups during the demo.
+    from flask import render_template as _render_template
+    import uuid as _uuid
+
+    _ERROR_COPY = {
+        404: ("Not found",
+              "The parcel, report, or page you tried to open isn\u2019t in this "
+              "portfolio. The seed data may have been refreshed and the URL is "
+              "stale; head to the portfolio and pick a parcel from the list."),
+        403: ("Access denied",
+              "This view is gated to authorized lender / owner accounts. If "
+              "you reached this from a partner-shared link, sign in with the "
+              "credentials in your invitation email."),
+        500: ("Something broke on our end",
+              "An unexpected error occurred. The team has been notified. "
+              "Try the portfolio link below; the rest of the dashboard should "
+              "be unaffected."),
+    }
+
+    def _err_handler(code):
+        def _h(_e):
+            headline, body = _ERROR_COPY.get(code,
+                ("Unexpected error", "Try the portfolio link below."))
+            req_id = _uuid.uuid4().hex[:8]
+            return _render_template(
+                "errors/error.html",
+                code=code, headline=headline, body=body, request_id=req_id,
+            ), code
+        return _h
+
+    for code in (403, 404, 500):
+        app.register_error_handler(code, _err_handler(code))
+
     @app.route("/health")
     def health():
-        return {"status": "ok", "demo": demo, "site": site}
+        # Touch the DB on every health check (every 30s per .do/app.yaml)
+        # so the SQLAlchemy connection pool stays warm. Without this the
+        # first real request after an idle period pays the connection-
+        # open cost (~1-3s) before responding — visible as a "freeze"
+        # at the top of the demo recording.
+        from sqlalchemy import text
+        db_ok = True
+        try:
+            db.session.execute(text("SELECT 1")).scalar()
+        except Exception:
+            db_ok = False
+        return {"status": "ok", "demo": demo, "site": site, "db": db_ok}
 
     @app.route("/")
     def index():
