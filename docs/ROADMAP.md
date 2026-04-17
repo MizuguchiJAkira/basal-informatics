@@ -4,18 +4,20 @@
 **Anchor:** A defensible, narratable 90-second product demo on a stable URL
 plus a methodology brief that survives an actuary's scrutiny.
 
-## Status snapshot (2026-04-17, 03:00 UTC)
+## Status snapshot (2026-04-17)
 
-✓ Demo property seeded (Edwards Plateau Ranch, 3 cameras, 4 species, 184 events)
-✓ REM density estimator with bootstrap 95% CI, recommendation flag, caveats
-✓ Dashboard renders Population Estimates section (live, verified)
-✓ Methodology + demo narrative + session log committed
+✓ Lender pivot shipped: LenderClient model, exposure engine, /lender routes, 5-parcel portfolio
+✓ Farm Credit of Central Texas portfolio live (verified via JSON + HTML render)
+✓ REM density estimator + Feral Hog Exposure Score (17 new tests; 40/40 green)
+✓ Compliance-aesthetic UI (portfolio table + Nature Exposure Report)
+✓ 4 GB worker Droplet (upsized from 2 GB — SpeciesNet now runs without OOM)
+✓ Methodology + demo narrative + session log committed (YC-partner framing)
 ✓ Stability: idle-transaction leak fixed, gunicorn tuned, health-check window bumped
-✗ Custom domain (Chrome warning still present on monkfish-app-ju2lv.ondigitalocean.app)
-✗ Real preview screenshots on marketing page
-✗ Pre-signed Spaces URL upload path
-✗ 4 GB worker (current 2 GB OOMs SpeciesNet)
-✗ Live ML pipeline validated end-to-end through a real upload
+✓ basal.eco registered at Namecheap, DNS records entered, App Platform domain added
+~ DNS propagation in progress (.eco registry delegation not yet published; ~15 min – few hours typical for newly-registered domains)
+✗ Pre-signed Spaces URL upload path (Week 2)
+✗ Live ML pipeline validated end-to-end through a real upload (Week 2)
+✗ IPW bias correction wired into REM input (Week 3)
 
 ## Week 1 — Demo polish (this week)
 

@@ -28,7 +28,7 @@ later. The code is still in the monorepo untouched.
 
 ### Demo URL for YC partners
 
-<https://monkfish-app-ju2lv.ondigitalocean.app/lender/fcct/>
+<https://basal.eco/lender/fcct/>
 
 Login: jonahakiracheng@gmail.com (now `is_owner=TRUE` via the seed) /
 PilotSmoke-d4e5ab. Change before demo day.
@@ -109,7 +109,7 @@ and `web/routes/api/properties.py` + `dashboard.py` + `share.py` +
 2. `docs/DEMO_NARRATIVE.md` (the 90-second YC pitch — needs your voice)
 3. `docs/METHODOLOGY.md` (artifact for actuarial/lender audiences)
 4. `docs/ROADMAP.md` (4-week plan with day-by-day tasks)
-5. The live dashboard: <https://monkfish-app-ju2lv.ondigitalocean.app/properties/1/dashboard>
+5. The live dashboard: <https://basal.eco/properties/1/dashboard>
    (login: jonahakiracheng@gmail.com / PilotSmoke-d4e5ab)
 
 ## Bottom line
@@ -119,7 +119,7 @@ density estimates with bootstrap 95% CIs, recommendation flags, and
 plain-language caveats — backed by tested code, fed by real seeded data.
 
 Visit while logged in:
-<https://monkfish-app-ju2lv.ondigitalocean.app/properties/1/dashboard>
+<https://basal.eco/properties/1/dashboard>
 
 Cards rendered live (verified via DOM scrape):
 

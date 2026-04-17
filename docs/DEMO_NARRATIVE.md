@@ -3,7 +3,7 @@
 **Audience:** YC partners.
 **Length budget:** 90 seconds spoken · ~225 words. Plus 30s of optional Q&A buffer.
 
-**Demo URL:** <https://monkfish-app-ju2lv.ondigitalocean.app/lender/fcct/>
+**Demo URL:** <https://basal.eco/lender/fcct/>
 (login: jonahakiracheng@gmail.com / PilotSmoke-d4e5ab — change before demo day)
 
 **Fallback:** screen recording of the same flow. See "Recording checklist" below.
