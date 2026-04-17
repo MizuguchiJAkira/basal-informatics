@@ -484,6 +484,9 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
                     "ALTER TABLE users ADD COLUMN is_owner BOOLEAN DEFAULT 0",
                     "ALTER TABLE processing_jobs ADD COLUMN property_id INTEGER",
                     "ALTER TABLE processing_jobs ADD COLUMN upload_id INTEGER",
+                    # Basal-side additions (lender pivot). Nullable; hunter-side ignores.
+                    "ALTER TABLE properties ADD COLUMN lender_client_id INTEGER",
+                    "ALTER TABLE properties ADD COLUMN crop_type VARCHAR(40)",
                 ]
                 for stmt in _additive_migrations:
                     try:

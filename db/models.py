@@ -51,6 +51,18 @@ class User(UserMixin, db.Model):
 # ---------------------------------------------------------------------------
 
 class Property(db.Model):
+    """A parcel of land.
+
+    Same row serves both sides of the product:
+      - Strecker (hunter-facing): calls it a "property", renders in /properties/*
+      - Basal Informatics (lender-facing): calls it a "parcel", renders in /lender/*
+
+    Parcel is associated with a LenderClient (the Farm Credit branch that holds
+    the loan) through ``lender_client_id``. A parcel with ``lender_client_id=NULL``
+    is hunter-only (no loan-backed assessment in flight). Crop type and
+    parcel_id display-format are additive fields used only on the Basal side;
+    Strecker ignores them.
+    """
     __tablename__ = "properties"
 
     id = db.Column(db.Integer, primary_key=True)
@@ -66,6 +78,17 @@ class Property(db.Model):
         db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
     )
 
+    # --- Basal-side additive fields (nullable; hunter-side ignores) ---
+    lender_client_id = db.Column(
+        db.Integer, db.ForeignKey("lender_clients.id"), nullable=True, index=True
+    )
+    # Major crop class at time of assessment. Drives APHIS/RMA damage modeling.
+    # Values: corn, sorghum, rice, cotton, peanut, wheat, soybean, hay, pasture,
+    # rangeland, mixed, other. Free-form for now; could move to an enum later.
+    crop_type = db.Column(db.String(40), nullable=True)
+    # Loan details stay at LenderClient level for MVP — not per-parcel — since
+    # a single lender client is one Farm Credit branch per the v1 spec.
+
     # Relationships
     cameras = db.relationship("Camera", backref="property", lazy="dynamic")
     seasons = db.relationship("Season", backref="property", lazy="dynamic")
@@ -75,8 +98,74 @@ class Property(db.Model):
     )
     share_cards = db.relationship("ShareCard", backref="property", lazy="dynamic")
 
+    @property
+    def parcel_id(self) -> str:
+        """Display-formatted parcel identifier.
+
+        Format: ``<STATE>-<COUNTY3>-<YEAR>-<SEQ>`` e.g. ``TX-KIM-2024-04817``.
+        Derived, not stored — keeps the column count honest. If state/county
+        are missing we fall back to a stable numeric form so callers never
+        get None.
+        """
+        state = (self.state or "XX").upper()[:2]
+        county = "".join(c for c in (self.county or "") if c.isalpha()).upper()[:3] or "XXX"
+        year = self.created_at.year if self.created_at else 2026
+        return f"{state}-{county}-{year}-{self.id:05d}"
+
     def __repr__(self):
         return f"<Property {self.name}>"
+
+
+# ---------------------------------------------------------------------------
+# LenderClient — a Farm Credit branch or ag bank that buys Basal's reports
+# ---------------------------------------------------------------------------
+
+class LenderClient(db.Model):
+    """One Farm Credit branch / ag bank / lender that commissions Nature
+    Exposure Reports on parcels in its loan portfolio.
+
+    MVP grain = one row per BRANCH. A regional Farm Credit System entity
+    with 40 branches = 40 rows. Parent-child relationships between branches
+    and holdings are deferred to post-pilot.
+
+    A Property (= parcel) has one current LenderClient via
+    ``Property.lender_client_id``. Historical loan transfers (parcel X moved
+    from lender A to lender B) are NOT tracked separately — we just update
+    the FK. If audit history becomes required we'll add a
+    ``parcel_lender_assignments`` table later.
+    """
+    __tablename__ = "lender_clients"
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)        # "Farm Credit of Central Texas"
+    slug = db.Column(db.String(80), unique=True)            # "farm-credit-central-texas" — URL-safe, stable
+    parent_org = db.Column(db.String(200), nullable=True)   # "AgFirst FCS", "FCS of America", etc.
+    state = db.Column(db.String(2), nullable=True)          # primary operating state
+    hq_address = db.Column(db.Text, nullable=True)
+    contact_email = db.Column(db.String(255), nullable=True)
+    # Billing / plan. Left as text for MVP; can harden to enum later.
+    plan_tier = db.Column(db.String(40), default="per_parcel")   # per_parcel | portfolio_unlimited
+    per_parcel_rate_usd = db.Column(db.Numeric(10, 2), nullable=True)   # if per_parcel
+    portfolio_rate_usd_monthly = db.Column(db.Numeric(10, 2), nullable=True)  # if unlimited
+    active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(
+        db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
+
+    # Reverse relationship: all parcels currently under this lender.
+    # We do NOT backref on Property.lender_client to avoid polluting the
+    # Strecker-side model introspection; the Basal routes query explicitly.
+    parcels = db.relationship(
+        "Property",
+        primaryjoin="Property.lender_client_id == LenderClient.id",
+        foreign_keys="Property.lender_client_id",
+        lazy="dynamic",
+        viewonly=True,
+    )
+
+    def __repr__(self):
+        return f"<LenderClient {self.name}>"
 
 
 # ---------------------------------------------------------------------------
