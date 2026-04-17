@@ -1,0 +1,294 @@
+{% extends "base.html" %}
+{% block title %}Upload trail cam data — {{ parcel.name }}{% endblock %}
+
+{% block content %}
+<style>
+  .upload-shell { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  .upload-shell .mono {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-variant-numeric: tabular-nums;
+  }
+  .upload-shell .field-label {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
+    color: #64748b; font-weight: 600;
+  }
+  html.dark .upload-shell .field-label { color: #94a3b8; }
+
+  .dropzone {
+    border: 2px dashed #cbd5e1;
+    border-radius: 10px;
+    padding: 36px 24px;
+    text-align: center;
+    transition: background-color 0.15s, border-color 0.15s;
+    cursor: pointer;
+    background: #fff;
+  }
+  html.dark .dropzone { border-color: #475569; background: #1e293b; }
+  .dropzone:hover { border-color: #0d7377; }
+  .dropzone.is-dragover {
+    border-color: #0d7377; background: #ecfdf5;
+  }
+  html.dark .dropzone.is-dragover { background: #064e3b33; }
+  .dropzone input[type=file] { display: none; }
+  .dropzone .hint { color: #64748b; font-size: 13px; margin-top: 6px; }
+  html.dark .dropzone .hint { color: #94a3b8; }
+
+  .progress-wrap {
+    display: none; margin-top: 24px;
+    padding: 18px 20px;
+    border: 1px solid #e2e8f0; border-radius: 10px;
+    background: #fff;
+  }
+  html.dark .progress-wrap { border-color: #334155; background: #1e293b; }
+  .progress-wrap.is-active { display: block; }
+  .progress-bar {
+    height: 8px; width: 100%;
+    background: #e2e8f0; border-radius: 4px; overflow: hidden;
+    margin-top: 8px;
+  }
+  html.dark .progress-bar { background: #334155; }
+  .progress-bar-fill {
+    height: 100%; width: 0%;
+    background: #0d7377;
+    transition: width 0.15s ease;
+  }
+  .progress-bar-fill.is-error { background: #dc2626; }
+  .progress-bar-fill.is-complete { background: #059669; }
+
+  .status-phases { display: flex; gap: 8px; margin-top: 16px; flex-wrap: wrap; }
+  .phase-badge {
+    padding: 4px 10px; border-radius: 4px; font-size: 11px;
+    background: #f1f5f9; color: #64748b; font-weight: 500;
+    letter-spacing: 0.02em;
+  }
+  html.dark .phase-badge { background: #0f172a; color: #94a3b8; }
+  .phase-badge.is-current {
+    background: #0d7377; color: white;
+  }
+  .phase-badge.is-done {
+    background: #059669; color: white;
+  }
+  .phase-badge.is-error {
+    background: #dc2626; color: white;
+  }
+</style>
+
+<div class="upload-shell max-w-3xl">
+  <div class="mb-6">
+    <a href="{{ url_for('lender.parcel_report', lender_slug=lender.slug, parcel_id=parcel.id) }}"
+       class="text-sm text-teal-600 dark:text-teal-400 hover:underline">
+      &larr; back to {{ parcel.name }} report
+    </a>
+    <div class="text-xs uppercase tracking-widest text-slate-500 dark:text-gray-400 mt-3 mb-1">
+      Data submission
+    </div>
+    <h1 class="text-2xl font-bold text-slate-900 dark:text-white">
+      Upload trail cam photos
+    </h1>
+    <div class="text-sm mono text-slate-500 dark:text-gray-400 mt-1">
+      Parcel {{ parcel.parcel_id }} &mdash; {{ parcel.name }}
+    </div>
+  </div>
+
+  <!-- Parcel metadata strip -->
+  <div class="grid grid-cols-2 md:grid-cols-4 gap-4 pb-5 mb-6 border-b border-gray-200 dark:border-gray-700">
+    <div>
+      <div class="field-label">Commissioned by</div>
+      <div class="text-sm text-slate-800 dark:text-gray-100 mt-1">{{ lender.name }}</div>
+    </div>
+    <div>
+      <div class="field-label">Acreage</div>
+      <div class="text-sm mono text-slate-700 dark:text-gray-200 mt-1">
+        {{ "{:,.0f}".format(parcel.acreage) if parcel.acreage else "—" }} ac
+      </div>
+    </div>
+    <div>
+      <div class="field-label">Crop class</div>
+      <div class="text-sm text-slate-700 dark:text-gray-200 mt-1">
+        {{ parcel.crop_type or "—" }}
+      </div>
+    </div>
+    <div>
+      <div class="field-label">County</div>
+      <div class="text-sm text-slate-700 dark:text-gray-200 mt-1">
+        {{ parcel.county or "—" }}{% if parcel.state %}, {{ parcel.state }}{% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Upload instructions -->
+  <div class="mb-5 text-sm text-slate-600 dark:text-gray-300 leading-relaxed">
+    Export your trail cam SD card contents to a single <span class="mono">.zip</span> file
+    and drag it onto the box below. Each camera's photos should be in a top-level
+    folder named after the camera label (e.g. <span class="mono">STATION-NORTH-FEEDER/</span>).
+    Timestamps are read from EXIF; filename patterns like
+    <span class="mono">CAM-F01_20260131_235114.jpg</span> also work as a fallback.
+    Max <strong>500 MB</strong> per upload.
+  </div>
+
+  <!-- Dropzone -->
+  <label class="dropzone" id="dropzone" for="file-input">
+    <div class="text-slate-700 dark:text-gray-200 font-semibold">
+      Drop your .zip file here
+    </div>
+    <div class="hint">or click to select</div>
+    <input type="file" id="file-input" accept=".zip,application/zip" />
+  </label>
+
+  <!-- Progress panel -->
+  <div class="progress-wrap" id="progress-wrap">
+    <div class="flex items-baseline justify-between">
+      <div class="text-sm font-semibold text-slate-800 dark:text-gray-100 mono" id="progress-filename">filename.zip</div>
+      <div class="text-xs text-slate-500 dark:text-gray-400 mono" id="progress-label">0%</div>
+    </div>
+    <div class="progress-bar"><div class="progress-bar-fill" id="progress-fill"></div></div>
+    <div class="status-phases" id="status-phases">
+      <span class="phase-badge" data-phase="uploading">Uploading</span>
+      <span class="phase-badge" data-phase="queued">Queued</span>
+      <span class="phase-badge" data-phase="processing">Ingest</span>
+      <span class="phase-badge" data-phase="classifying">Classify</span>
+      <span class="phase-badge" data-phase="reporting">Report</span>
+      <span class="phase-badge" data-phase="complete">Complete</span>
+    </div>
+    <div class="mt-3 text-xs text-slate-600 dark:text-gray-300" id="progress-message"></div>
+    <div class="mt-4 hidden" id="view-report-wrap">
+      <a href="{{ url_for('lender.parcel_report', lender_slug=lender.slug, parcel_id=parcel.id) }}"
+         class="inline-block px-4 py-2 text-sm rounded-lg bg-teal-600 hover:bg-teal-700 text-white font-semibold transition">
+        View updated Nature Exposure Report &rarr;
+      </a>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const PARCEL_ID = {{ parcel.id }};
+  const dz = document.getElementById('dropzone');
+  const input = document.getElementById('file-input');
+  const wrap = document.getElementById('progress-wrap');
+  const fill = document.getElementById('progress-fill');
+  const label = document.getElementById('progress-label');
+  const fname = document.getElementById('progress-filename');
+  const msg = document.getElementById('progress-message');
+  const phases = document.getElementById('status-phases');
+  const reportLinkWrap = document.getElementById('view-report-wrap');
+
+  // Drag-drop plumbing.
+  ['dragenter','dragover'].forEach(evt =>
+    dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.add('is-dragover'); }));
+  ['dragleave','drop'].forEach(evt =>
+    dz.addEventListener(evt, e => { e.preventDefault(); dz.classList.remove('is-dragover'); }));
+  dz.addEventListener('drop', e => {
+    const file = e.dataTransfer.files[0];
+    if (file) startUpload(file);
+  });
+  input.addEventListener('change', () => {
+    if (input.files[0]) startUpload(input.files[0]);
+  });
+
+  function setPhase(name, state /* is-current | is-done | is-error */) {
+    [...phases.querySelectorAll('.phase-badge')].forEach(b => {
+      if (b.dataset.phase === name) b.className = 'phase-badge ' + state;
+    });
+  }
+  function markDone(upTo) {
+    const order = ['uploading','queued','processing','classifying','reporting','complete'];
+    const idx = order.indexOf(upTo);
+    order.forEach((name, i) => {
+      setPhase(name, i < idx ? 'is-done' : i === idx ? 'is-current' : '');
+    });
+  }
+  function fail(message) {
+    fill.classList.add('is-error'); fill.style.width = '100%';
+    msg.textContent = 'Error: ' + message;
+    msg.className = 'mt-3 text-xs text-red-600 dark:text-red-400';
+  }
+  function complete(data) {
+    fill.classList.add('is-complete'); fill.style.width = '100%';
+    label.textContent = 'Complete';
+    msg.textContent = `Processed ${data.photo_count || '?'} photos across ${data.n_species || '?'} species (${data.n_events || '?'} independent events).`;
+    markDone('complete');
+    reportLinkWrap.classList.remove('hidden');
+  }
+
+  async function startUpload(file) {
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+      alert('Please upload a .zip file.'); return;
+    }
+    wrap.classList.add('is-active');
+    fname.textContent = file.name + `  (${(file.size / 1024 / 1024).toFixed(2)} MB)`;
+    label.textContent = '0%';
+    fill.style.width = '0%';
+    fill.classList.remove('is-error', 'is-complete');
+    markDone('uploading');
+
+    // 1) Request pre-signed PUT URL.
+    let reqResp;
+    try {
+      const r = await fetch(`/api/parcels/${PARCEL_ID}/uploads/request`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({filename: file.name, size_bytes: file.size}),
+      });
+      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || `request failed ${r.status}`); }
+      reqResp = await r.json();
+    } catch (e) { fail(e.message); return; }
+
+    // 2) PUT the bytes directly to Spaces.
+    await new Promise((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.upload.addEventListener('progress', e => {
+        if (e.lengthComputable) {
+          const pct = Math.round(e.loaded / e.total * 100);
+          fill.style.width = pct + '%';
+          label.textContent = pct + '%';
+        }
+      });
+      xhr.onload = () => (xhr.status >= 200 && xhr.status < 300) ? resolve() : reject(new Error(`Spaces PUT failed ${xhr.status}`));
+      xhr.onerror = () => reject(new Error('network error during PUT'));
+      xhr.open('PUT', reqResp.upload_url);
+      xhr.setRequestHeader('Content-Type', 'application/zip');
+      xhr.send(file);
+    }).catch(e => { fail(e.message); throw e; });
+
+    // 3) Confirm + queue the worker job.
+    let confirmResp;
+    try {
+      const r = await fetch(`/api/parcels/${PARCEL_ID}/uploads/${reqResp.upload_id}/confirm`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        credentials: 'include',
+        body: JSON.stringify({key: reqResp.key, job_id_reservation: reqResp.job_id_reservation}),
+      });
+      if (!r.ok) { const e = await r.json().catch(() => ({})); throw new Error(e.error || `confirm failed ${r.status}`); }
+      confirmResp = await r.json();
+    } catch (e) { fail(e.message); return; }
+    markDone('queued');
+    msg.textContent = 'Queued — worker will pick up within 10 seconds.';
+
+    // 4) Poll status until complete or error.
+    const uploadId = reqResp.upload_id;
+    const poll = async () => {
+      try {
+        const r = await fetch(`/api/parcels/${PARCEL_ID}/uploads/${uploadId}/status`, {credentials: 'include'});
+        const data = await r.json();
+        if (data.status === 'complete') { complete(data); return; }
+        if (data.status === 'error')    { fail(data.error_message || 'worker error'); return; }
+        // Map statuses → phase badges
+        const mapping = {
+          queued: 'queued', processing: 'processing',
+          classifying: 'classifying', reporting: 'reporting',
+        };
+        markDone(mapping[data.status] || 'queued');
+        msg.textContent = `Status: ${data.status}…`;
+      } catch (e) {
+        // keep polling through transient network blips
+      }
+      setTimeout(poll, 3000);
+    };
+    poll();
+  }
+})();
+</script>
+{% endblock %}

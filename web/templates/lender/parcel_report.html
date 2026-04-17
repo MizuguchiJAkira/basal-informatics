@@ -100,8 +100,17 @@
          class="text-sm text-teal-600 dark:text-teal-400 hover:underline">
         &larr; {{ lender.name }} portfolio
       </a>
-      <div class="report-ref-line">
-        REPORT-{{ parcel.parcel_id }}-{{ today.strftime('%Y%m%d') }}
+      <div class="flex items-center gap-3">
+        <a href="{{ url_for('lender.parcel_upload_form', lender_slug=lender.slug, parcel_id=parcel.id) }}"
+           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-teal-600 hover:bg-teal-700 text-white transition">
+          <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
+          </svg>
+          Upload trail cam data
+        </a>
+        <div class="report-ref-line">
+          REPORT-{{ parcel.parcel_id }}-{{ today.strftime('%Y%m%d') }}
+        </div>
       </div>
     </div>
     <div class="text-xs uppercase tracking-widest text-slate-500 dark:text-gray-400 mb-1">

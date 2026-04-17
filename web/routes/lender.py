@@ -379,6 +379,28 @@ def parcel_report(lender_slug, parcel_id):
     )
 
 
+@lender_bp.route("/<lender_slug>/parcel/<int:parcel_id>/upload")
+@lender_access_required
+def parcel_upload_form(lender_slug, parcel_id):
+    """Landowner-facing upload form for a parcel.
+
+    Drag-drop ZIP, progress bar, status polling. All work happens
+    browser-side against /api/parcels/<id>/uploads/* — this route just
+    renders the HTML shell.
+    """
+    lender = LenderClient.query.filter_by(slug=lender_slug, active=True).first()
+    if not lender:
+        abort(404)
+    parcel = Property.query.get(parcel_id)
+    if not parcel or parcel.lender_client_id != lender.id:
+        abort(404)
+    return render_template(
+        "lender/parcel_upload.html",
+        lender=lender,
+        parcel=parcel,
+    )
+
+
 @lender_bp.route("/api/<lender_slug>/parcel/<int:parcel_id>/exposure")
 @lender_access_required
 def parcel_exposure_json(lender_slug, parcel_id):
