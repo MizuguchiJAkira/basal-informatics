@@ -1,18 +1,41 @@
-# Strecker / Basal Informatics — Methodology
+# Basal Informatics — Methodology
 
-*One-page brief for actuarial, lender, and reinsurance audiences.*
+*One-page brief for ag lenders and loan-review committees. Intended audience:
+Farm Credit System associations, regional agricultural banks, and the
+portfolio-management / collateral-review teams that commission ecological
+condition assessments on parcels they lend against.*
+
+## Who submits the data
+
+Landowners with active agricultural loans. Submission is either required
+at loan renewal or incentivized through rate terms — the same
+documentation pattern that already covers soil tests, yield records, and
+irrigation logs. The landowner exports their own trail-cam SD cards and
+uploads a single `.zip` through a Basal web form; the resulting Nature
+Exposure Report is shared with their lender for collateral review.
+
+Basal does not collect data from the landowner without their participation.
+The lender commissions the report; the landowner supplies the raw photos;
+Basal produces the methodology-backed output.
 
 ## What we measure
 
-Per-species **density estimates** (animals/km²) for a property over a
+Per-species **density estimates** (animals/km²) for a parcel over a
 defined survey period, with bootstrap 95% confidence intervals and a
-sufficient/recommend-survey/insufficient-data flag.
+sufficient/recommend-survey/insufficient-data flag. For feral hogs
+specifically we also produce a **tiered Exposure Score** (Low /
+Moderate / Elevated / Severe) and a modeled annual crop-damage
+projection labeled as supplementary context.
 
-We do not measure damage dollars. The relationship between hog density
-and parcel-scale crop loss is poorly characterized in the literature
-(producer-survey recall bias, state-level extrapolations that break
-down at parcel scale); reinsurers run their own damage models against
-verified density inputs. We provide the verified density.
+We do not claim damage dollars as a pipeline output. The relationship
+between hog density and parcel-scale crop loss is poorly characterized
+in the literature (producer-survey recall bias, state-level
+extrapolations that break down at parcel scale). What we publish is the
+verified density + tier + projection — each clearly labeled according
+to whether it came out of the pipeline or a downstream model. The loan
+committee can use the tier as a binary go/no-go signal or feed the
+density into its own internal collateral valuation without adopting
+our damage model.
 
 ## Estimator: Random Encounter Model (REM)
 
@@ -97,17 +120,27 @@ Thresholds are tunable in `config/settings.py`:
 `MIN_CAMERA_DAYS_FOR_DENSITY`, `MIN_DETECTIONS_FOR_DENSITY`,
 `DENSITY_CI_RATIO_THRESHOLD`.
 
-## What the actuary gets
+## What the loan-review committee gets
 
-For each species at each property/period, a JSON record:
+For each species on each parcel for each survey period, both the
+lender dashboard (`/lender/<slug>/parcel/<id>`) and the JSON API
+(`/lender/api/<slug>/parcel/<id>/exposure`) return a structured
+record suitable for import into the lender's internal portfolio-
+management system:
 
 ```json
 {
   "species_key":              "feral_hog",
   "common_name":              "Feral Hog",
+  "tier":                     "Elevated",
+  "score_0_100":              50.6,
   "density_animals_per_km2":  5.13,
   "density_ci_low":           1.29,
   "density_ci_high":          16.64,
+  "dollar_projection_annual_usd":       25561,
+  "dollar_projection_ci_low_usd":        6432,
+  "dollar_projection_ci_high_usd":      82963,
+  "crop_modifier":            1.30,
   "n_cameras":                3,
   "total_camera_days":        174.0,
   "total_detections":         69,
@@ -119,14 +152,25 @@ For each species at each property/period, a JSON record:
      not eliminate it."
   ],
   "method_notes": [
-    "Daily travel distance: v = 6.0 km/day (sd 2.5). Source: Kay et al. 2017."
+    "Daily travel distance: v = 6.0 km/day (sd 2.5). Source: Kay et al. 2017.",
+    "Dollar projection is a MODELED ESTIMATE, not a pipeline output..."
   ]
 }
 ```
 
-Audit trail (camera-day granularity, individual detection timestamps,
-SpeciesNet inference confidence per photo) is retained and available
-on request.
+Audit trail is retained at **camera-day granularity**: individual
+detection timestamps, SpeciesNet inference confidence per photo, and
+the raw ZIP the landowner submitted. Available for any downstream
+review the lender or its auditor runs.
+
+## Pricing
+
+- **Per parcel-verification:** $1,500 per report. One-time per survey window.
+- **Portfolio unlimited:** $5,000 / month. Unlimited parcels in the lender's portfolio.
+
+The alternative is a ~$40,000 independent field-biologist survey that's
+point-in-time and goes stale inside six months. Basal is ~25× cheaper
+at the per-parcel tier and continuously refreshable rather than stale.
 
 ## What we do not claim
 

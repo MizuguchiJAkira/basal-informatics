@@ -174,7 +174,7 @@ underwriting guidance, the switching cost for a lender is non-trivial.
 
 ## What to have queued in another tab for Q&A
 
-- `docs/METHODOLOGY.md` — one-pager for the actuary/ecologist question
+- `docs/METHODOLOGY.md` — one-pager for the loan-review-committee / ecologist question
 - `docs/ROADMAP.md` — in case a partner asks "what do you build in week one post-funding"
 - The JSON API response for Riverbend Farm at
   `/lender/api/fcct/parcel/2/exposure` — the compliance-ready format

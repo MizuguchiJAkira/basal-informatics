@@ -1,18 +1,33 @@
 # Pivot: Damage Projections → Population Estimates
 
+> **Status (2026-04-17):** Technical decision in this doc stands — we
+> produce density + tier as pipeline outputs, dollar projections as
+> supplementary modeled context clearly labeled. Audience framing has
+> since shifted from the original "actuarial / reinsurer" target to
+> **ag lenders and their loan-review committees**; see `METHODOLOGY.md`
+> and `DEMO_NARRATIVE.md` for current positioning. The reasoning for
+> not making damage dollars a pipeline output is the same regardless
+> of buyer — loan officers and actuaries both prefer to run their own
+> damage math against a defensible density input.
+
 ## Why
 
 Damage-projection math in the hog-agriculture literature is weak:
 
 - Most parcel-scale damage figures come from producer surveys (recall bias,
   self-selection) or from state-level aggregate extrapolations that break down
-  at the parcel scale Strecker actually operates on.
-- Claiming "your parcel lost $X" from a trail-cam dataset is a credibility
-  liability. The underlying detections → population → damage function has
-  uncertainty intervals wider than the point estimate.
-- The actuarial/insurance audience doesn't want a damage dollar figure from
-  us anyway. They want verified presence and a defensible density estimate,
-  and they'll run damage math through their own models.
+  at the parcel scale a single camera survey operates on.
+- Claiming "your parcel lost $X" from a trail-cam dataset as a pipeline
+  output is a credibility liability. The underlying detections → population
+  → damage function has uncertainty intervals wider than the point estimate.
+- The buyer (ag lender loan-review committee, or secondary reinsurer-facing
+  TNFD consumer) does not want a damage dollar figure from the pipeline.
+  They want verified presence + a defensible density estimate and will
+  run damage math through their own models. We do publish a modeled
+  damage projection in the Nature Exposure Report, but clearly labeled
+  "MODELED ESTIMATE, not a pipeline output" and scaled from Anderson 2016
+  per-hog figures — it's a supplementary convenience for loan-review
+  committees that haven't yet built their own model.
 
 ## New output shape
 
@@ -27,9 +42,13 @@ Per species, per parcel, per survey period:
   - `recommend_supplementary_survey` — CI wide or confounders flagged
   - `insufficient_data` — < N camera-days or < M detections
 
-The headline number the user quotes the insurer becomes
-"*estimated density 3.2 hogs/km² (95% CI 1.8–5.4), commissioned survey
-recommended to tighten range*" — not "$47,000 projected damage."
+The headline number the loan-review committee reads becomes:
+> *"Feral hog density 5.13/km² (95% CI 1.29–16.64), Elevated tier,
+> commissioned survey recommended to tighten range."*
+
+not "$47,000 projected damage" as a pipeline output. Damage dollars
+remain available as supplementary context but are downstream of the
+density.
 
 ## Method: Random Encounter Model (REM)
 
@@ -174,7 +193,9 @@ Section ordering change:
 5. Rebuild report sections.
 6. End-to-end demo on Matagorda Bay calibration data — compare REM density
    to any ground-truth counts available.
-7. Write up the methodology as a one-pager for the reinsurer pilot deck.
+7. Write up the methodology as a one-pager for the Farm Credit pilot deck
+   (see `docs/METHODOLOGY.md`). Reinsurer / TNFD channel gets a variant
+   of the same one-pager post-pilot.
 
 ## What this enables for Basal Informatics
 

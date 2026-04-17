@@ -65,8 +65,8 @@ and addresses the connection pool fragility for real.
 
 | Day | Task | Notes |
 |-----|------|-------|
-| Mon | Reinsurer-pilot one-pager: problem, methodology, verification artifact | The leave-behind |
-| Tue | Outreach to first reinsurer contact (Strecker target = TX-focused regional) | Get one pilot conversation booked |
+| Mon | Farm Credit pilot one-pager: problem, methodology, verification artifact | The leave-behind PDF a loan-review committee can read in 10 minutes |
+| Tue | Outreach to first Farm Credit System contact (TX association first — same geography as our seed) | Get one pilot conversation booked |
 | Wed | Demo recording (fallback for live demo failures) | 1280×800, exact same flow |
 | Thu | Final dashboard polish based on practice runs | Cosmetic only; no architectural changes |
 | Fri | DEMO DAY | Use custom domain, not the App Platform default |
@@ -92,8 +92,10 @@ These are choices I cannot make without you:
 2. **Pricing model.** Per-property subscription? Per-survey? Reinsurer-paid
    per-parcel-verified? Fills the TODO in `DEMO_NARRATIVE.md`.
 3. **Raise amount.** Fills the TODO in `DEMO_NARRATIVE.md` Beat 4.
-4. **First reinsurer contact.** Who? What's their lead-time for a pilot
-   conversation?
+4. **First Farm Credit contact.** Which association? District (Texas
+   Agriculture Credit, Capital Farm Credit, Legacy Ag Credit, etc.) or
+   AgFirst/FCS America headquarters-level? What's the lead-time for a
+   pilot conversation — branch decision vs. bank-wide steering committee?
 5. **Demo style.** Live demo with risk of crashes vs. pre-recorded with
    no risk but less interactive feel.
 
@@ -105,5 +107,8 @@ These are choices I cannot make without you:
 - Damage-dollar projections (POPULATION_PIVOT.md explicitly defers these)
 - Re-ID for individual deer tracking (the dashboard has a placeholder UI
   but no backing model; ship it as "coming soon" rather than half-built)
-- B2B-API for reinsurer integration (post-pilot conversation, with the
-  pilot informing what shape the API needs)
+- B2B-API for lender portfolio integration (post-pilot — the pilot
+  conversation will dictate what shape the import/export API needs)
+- Reinsurer / TNFD-disclosure channel — secondary market that picks up
+  once the lender motion has 3+ signed pilots and we can publish
+  methodology-validated ecological data at scale
