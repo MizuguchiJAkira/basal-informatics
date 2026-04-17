@@ -79,10 +79,18 @@ badge + disclaimer are on camera.]*
 
 ### Beat 4 — The moat (~15s)
 
-> The report is audit-traceable at camera-day granularity, and the
-> same output slots into the TNFD nature-risk ontology that reinsurers
-> are adopting. That's the primary-source ecological dataset nobody
-> else in this stack has.
+*[Scroll up to the "Survey trend (continuous monitoring)" widget on
+the parcel report. Pause one second so the Fall 2025 → Spring 2026
+chips and the "Elevated → Severe" delta line are on camera.]*
+
+> Riverbend was Elevated tier in Fall 2025 — five point six animals
+> per square kilometer. Spring 2026 it's Severe at thirteen point five.
+> That trajectory — Elevated to Severe in five months, a hundred and
+> forty percent density jump — is what the lender sees that no
+> point-in-time field survey would have caught. The same audit-
+> traceable record slots into the TNFD nature-risk ontology
+> reinsurers are adopting. That's the primary-source ecological
+> dataset nobody else in this stack has.
 
 *[Close the laptop.]*
 

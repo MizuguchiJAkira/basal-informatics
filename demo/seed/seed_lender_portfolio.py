@@ -78,6 +78,24 @@ PARCELS = [
         "season": {
             "name": "Spring 2026", "start": date(2026, 2, 1), "end": date(2026, 3, 31),
         },
+        # A prior survey period seeds the continuous-monitoring trend
+        # widget on the parcel report. Fall 2025 had Elevated-tier hog
+        # pressure (~5.6/km², score 53); Spring 2026 escalated to Severe
+        # (~13.5/km², score 84). The lender's loan-review committee sees
+        # the trajectory, not just a snapshot — that's the wedge against
+        # the $40K point-in-time field survey alternative.
+        "prior_seasons": [
+            {
+                "name": "Fall 2025",
+                "start": date(2025, 9, 1), "end": date(2025, 11, 30),
+                "hog_events_by_camera": {
+                    "CAM-RB-CORN-01": 50,
+                    "CAM-RB-CORN-02": 46,
+                    "CAM-RB-RAND-01": 62,
+                    "CAM-RB-RAND-02": 72,
+                },
+            },
+        ],
         # Heavy hog pressure on a small corn parcel. Density >10/km² => Severe.
         # Deployment design: 2 cameras at high-utility features (food_plot,
         # water) for hog detection, plus 2 cameras placed at random GPS
@@ -414,6 +432,7 @@ def main():
         """, (property_id, p["season"]["name"], p["season"]["start"], p["season"]["end"]))
         season_id = cur.fetchone()[0]
 
+        cam_ids_by_label = {}
         for cam in p["cameras"]:
             cur.execute("""
                 INSERT INTO cameras (property_id, camera_label, name, lat, lon,
@@ -424,6 +443,7 @@ def main():
             """, (property_id, cam["label"], cam["name"], cam["lat"], cam["lon"],
                   cam["placement_context"], cam["camera_model"], cam["installed_date"]))
             cam_id = cur.fetchone()[0]
+            cam_ids_by_label[cam["label"]] = cam_id
 
             for species_key, stats in cam["species"].items():
                 h24 = stats["hourly"]
@@ -441,8 +461,43 @@ def main():
                       stats.get("buck", 0), stats.get("doe", 0),
                       peak, json.dumps(h24)))
 
+        # Optional prior seasons — same cameras, different
+        # detection_summaries rows. Drives the continuous-monitoring
+        # trend widget on the parcel report.
+        for prior in p.get("prior_seasons", []):
+            cur.execute("""
+                INSERT INTO seasons (property_id, name, start_date, end_date, created_at)
+                VALUES (%s, %s, %s, %s, NOW()) RETURNING id
+            """, (property_id, prior["name"], prior["start"], prior["end"]))
+            prior_season_id = cur.fetchone()[0]
+            prior_h24 = hourly((20, 24, 4), (0, 6, 4))
+            for cam_label, hog_events in prior["hog_events_by_camera"].items():
+                cam_id = cam_ids_by_label.get(cam_label)
+                if cam_id is None:
+                    continue
+                # Approximate photos at ~4× events (consistent w/ Spring 2026
+                # photo:event ratios on these cameras).
+                photos = hog_events * 4
+                first_dt = datetime.combine(prior["start"], datetime.min.time())
+                last_dt = datetime.combine(prior["end"], datetime.min.time())
+                cur.execute("""
+                    INSERT INTO detection_summaries
+                        (season_id, camera_id, species_key,
+                         total_photos, independent_events, avg_confidence,
+                         first_seen, last_seen, buck_count, doe_count,
+                         peak_hour, hourly_distribution, created_at)
+                    VALUES (%s,%s,'feral_hog', %s, %s, 0.91,
+                            %s, %s, 0, 0, %s, %s, NOW())
+                """, (prior_season_id, cam_id, photos, hog_events,
+                      first_dt, last_dt,
+                      prior_h24.index(max(prior_h24)),
+                      json.dumps(prior_h24)))
+
+        n_priors = len(p.get("prior_seasons", []))
+        prior_note = f" + {n_priors} prior season(s)" if n_priors else ""
         print(f"  Created {prop_data['name']} (id={property_id}) "
-              f"— {len(p['cameras'])} camera(s), crop={prop_data['crop_type']}")
+              f"— {len(p['cameras'])} camera(s), crop={prop_data['crop_type']}"
+              f"{prior_note}")
 
     conn.commit()
 

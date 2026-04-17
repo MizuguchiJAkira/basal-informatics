@@ -124,12 +124,20 @@ Script:
 
 ### Beat 4 — Moat (1:18 – 1:30)
 
-Script:
-> "The report is audit-traceable at camera-day granularity, and the
-> same output slots into the TNFD nature-risk ontology reinsurers are
-> adopting. Primary-source ecological data nobody else in this stack has."
+Action at 1:18: scroll back UP the parcel report to the "Survey trend
+(continuous monitoring)" widget. Pause one second so the Fall 2025 →
+Spring 2026 chips and the "Elevated → Severe" delta line are on camera.
 
-Action at 1:22: click back to the portfolio (top-left arrow) to end on
+Script:
+> "Riverbend was Elevated tier in Fall 2025 — five point six animals
+> per square kilometer. Spring 2026 it's Severe at thirteen point five.
+> That trajectory — Elevated to Severe in five months — is what the
+> lender sees that no point-in-time field survey would have caught.
+> The same audit-traceable record slots into the TNFD nature-risk
+> ontology reinsurers are adopting. Primary-source ecological data
+> nobody else in this stack has."
+
+Action at 1:26: click back to the portfolio (top-left arrow) to end on
 a wide shot of the five parcels, tier diversity, the Farm Credit
 client name in the header.
 

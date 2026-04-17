@@ -253,6 +253,34 @@ def _neighboring_coverage(parcel: Property, season: Season,
 
 
 # ---------------------------------------------------------------------------
+# Continuous-monitoring trend
+# ---------------------------------------------------------------------------
+
+def _hog_history(parcel: "Property") -> list:
+    """Compute hog exposure across every season on this parcel, oldest
+    first. Drives the trend widget on the parcel report and the
+    `pipeline.history` array in the JSON API.
+
+    Each entry: {season, hog_exposure, stats}. `hog_exposure` is the
+    feral_hog ExposureResult (or None if no hog detections that
+    season); `season` is the SQLAlchemy Season row; `stats` is the
+    same dict shape _compute_parcel_exposures returns.
+    """
+    seasons = (Season.query
+               .filter_by(property_id=parcel.id)
+               .filter(Season.start_date.isnot(None))
+               .filter(Season.end_date.isnot(None))
+               .order_by(Season.start_date.asc(), Season.id.asc())
+               .all())
+    out = []
+    for s in seasons:
+        sx, sst = _compute_parcel_exposures(parcel, s)
+        hog = next((e for e in sx if e.species_key == "feral_hog"), None)
+        out.append({"season": s, "hog_exposure": hog, "stats": sst})
+    return out
+
+
+# ---------------------------------------------------------------------------
 # Views
 # ---------------------------------------------------------------------------
 
@@ -371,6 +399,12 @@ def parcel_report(lender_slug, parcel_id):
 
     coverage = _neighboring_coverage(parcel, season)
 
+    # Continuous-monitoring trend: compute hog exposure across every
+    # historical season for this parcel. The lender's wedge against
+    # a $40K point-in-time field survey is exactly this — they see
+    # the trajectory, not a snapshot.
+    hog_history = _hog_history(parcel)
+
     return render_template(
         "lender/parcel_report.html",
         lender=lender,
@@ -379,6 +413,7 @@ def parcel_report(lender_slug, parcel_id):
         exposures=exposures,
         stats=stats,
         coverage=coverage,
+        hog_history=hog_history,
         today=date.today(),
     )
 
@@ -443,6 +478,35 @@ def parcel_exposure_json(lender_slug, parcel_id):
 
     exposures, stats = _compute_parcel_exposures(parcel, season)
     coverage = _neighboring_coverage(parcel, season)
+    hog_history = _hog_history(parcel)
+    history_json = [
+        {
+            "season_id": h["season"].id,
+            "season_name": h["season"].name,
+            "period_start": h["season"].start_date.isoformat() if h["season"].start_date else None,
+            "period_end": h["season"].end_date.isoformat() if h["season"].end_date else None,
+            "tier": h["hog_exposure"].tier if h["hog_exposure"] else None,
+            "score_0_100": (round(h["hog_exposure"].score_0_100, 1)
+                            if h["hog_exposure"] and h["hog_exposure"].score_0_100 is not None
+                            else None),
+            "density_animals_per_km2": (round(h["hog_exposure"].density_animals_per_km2, 2)
+                                        if h["hog_exposure"] and h["hog_exposure"].density_animals_per_km2 is not None
+                                        else None),
+            "density_ci_low": (round(h["hog_exposure"].density_ci_low, 2)
+                               if h["hog_exposure"] and h["hog_exposure"].density_ci_low is not None
+                               else None),
+            "density_ci_high": (round(h["hog_exposure"].density_ci_high, 2)
+                                if h["hog_exposure"] and h["hog_exposure"].density_ci_high is not None
+                                else None),
+            "detection_rate_per_camera_day": (round(h["hog_exposure"].detection_rate_per_camera_day, 4)
+                                              if h["hog_exposure"] and h["hog_exposure"].detection_rate_per_camera_day is not None
+                                              else None),
+            "detection_rate_adjusted_per_camera_day": (round(h["hog_exposure"].detection_rate_adjusted_per_camera_day, 4)
+                                                       if h["hog_exposure"] and h["hog_exposure"].detection_rate_adjusted_per_camera_day is not None
+                                                       else None),
+        }
+        for h in hog_history
+    ]
     return jsonify({
         "lender": {"slug": lender.slug, "name": lender.name},
         "parcel": {
@@ -497,6 +561,11 @@ def parcel_exposure_json(lender_slug, parcel_id):
                     "recommendation": e.recommendation,
                     "caveats": e.caveats,
                     "method_notes": e.method_notes,
+                    # Continuous-monitoring trend across every season
+                    # surveyed on this parcel. Only attached to the
+                    # feral_hog entry at v1 since that's the only
+                    # species with a tier classifier.
+                    "history": history_json if e.species_key == "feral_hog" else [],
                 },
                 # --- Supplementary modeled projection (third-party loss data) ---
                 # Explicitly nested to signal to downstream importers that
