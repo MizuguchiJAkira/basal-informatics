@@ -92,7 +92,7 @@ CAMERAS = [
     {
         "label": "CAM-NR-WEST",
         "name": "North Ridge creek bottom",
-        "lat": 30.556, "lon": -99.725,  # ~1.4 km N of Edwards Plateau N edge
+        "lat": 30.545, "lon": -99.725,  # ~1.7 km N of Edwards Plateau N edge — within 2 km cutoff
         "placement_context": "water",
         "camera_model": "Bushnell Core DS",
         "installed_date": date(2026, 1, 22),
