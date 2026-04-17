@@ -27,6 +27,8 @@ from db.models import (Camera, DetectionSummary, LenderClient, Property,
                        Season, db)
 from risk.exposure import (TIER_INFO_ONLY, TIER_ORDER, exposure_for_species)
 from risk.population import CameraSurveyEffort, estimate_for_property
+from risk.proximity import (NEIGHBOR_RADIUS_KM, SOURCE_NEIGHBORING,
+                            SOURCE_ON_PARCEL, classify_cameras)
 
 lender_bp = Blueprint(
     "lender", __name__,
@@ -152,6 +154,93 @@ def _compute_parcel_exposures(parcel: Property, season: Season):
     return exposures, stats
 
 
+def _neighboring_coverage(parcel: Property, season: Season,
+                          cutoff_km: float = NEIGHBOR_RADIUS_KM):
+    """Find Strecker / off-parcel cameras within ``cutoff_km`` of the parcel
+    boundary and report their detection contributions.
+
+    This is the DetectionIngest bridge: Strecker hunter users on neighboring
+    hunting leases contribute supplementary ecological signal for parcels
+    with sparse on-parcel coverage. Per strategic spec:
+      - No visible link between Strecker and Basal in the UI
+      - Report distinguishes own cameras vs neighboring + proximity confidence
+      - Neighboring data is SUPPLEMENTARY; does NOT fold into REM density
+
+    Returns:
+        {
+          "on_parcel_cameras": [<Camera>, ...],
+          "neighbors": [
+            {
+              "camera": <Camera>,
+              "distance_km": float,
+              "proximity_confidence": float,
+              "species_contributions": [{"species_key", "events", "photos"}, ...],
+            },
+            ...
+          ],
+          "cutoff_km": float,
+        }
+    """
+    if not parcel.boundary_geojson:
+        return {"on_parcel_cameras": list(parcel.cameras.all()),
+                "neighbors": [], "cutoff_km": cutoff_km}
+
+    # Pull ALL cameras on properties OTHER than the target parcel.
+    # Bounded query: we're on a small-scale pilot so full-table scan is fine.
+    # At production scale, pre-filter by lat/lon bbox around the parcel
+    # centroid to limit the point-in-polygon / distance work.
+    candidates = (Camera.query
+                  .filter(Camera.property_id != parcel.id)
+                  .filter(Camera.lat.isnot(None), Camera.lon.isnot(None))
+                  .all())
+
+    classifications = classify_cameras(candidates, parcel, cutoff_km=cutoff_km)
+
+    on_parcel = list(parcel.cameras.all())
+    neighbors = []
+    nbr_classifications = [c for c in classifications
+                           if c.source == SOURCE_NEIGHBORING]
+
+    if not nbr_classifications or not season:
+        return {"on_parcel_cameras": on_parcel,
+                "neighbors": [],
+                "cutoff_km": cutoff_km}
+
+    # Pull detections for those cameras in the same season so we can report
+    # supplementary event counts per species.
+    nbr_cam_ids = [c.camera_id for c in nbr_classifications]
+    det_rows = DetectionSummary.query.filter(
+        DetectionSummary.season_id == season.id,
+        DetectionSummary.camera_id.in_(nbr_cam_ids),
+    ).all() if nbr_cam_ids else []
+
+    by_cam = {}
+    for d in det_rows:
+        by_cam.setdefault(d.camera_id, []).append({
+            "species_key": d.species_key,
+            "events": int(d.independent_events or 0),
+            "photos": int(d.total_photos or 0),
+        })
+
+    cam_by_id = {c.id: c for c in candidates}
+    for cls in nbr_classifications:
+        cam = cam_by_id.get(cls.camera_id)
+        if not cam:
+            continue
+        neighbors.append({
+            "camera": cam,
+            "distance_km": cls.distance_km,
+            "proximity_confidence": cls.proximity_confidence,
+            "species_contributions": by_cam.get(cam.id, []),
+        })
+
+    return {
+        "on_parcel_cameras": on_parcel,
+        "neighbors": neighbors,
+        "cutoff_km": cutoff_km,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Views
 # ---------------------------------------------------------------------------
@@ -267,6 +356,8 @@ def parcel_report(lender_slug, parcel_id):
     if season:
         exposures, stats = _compute_parcel_exposures(parcel, season)
 
+    coverage = _neighboring_coverage(parcel, season)
+
     return render_template(
         "lender/parcel_report.html",
         lender=lender,
@@ -274,6 +365,7 @@ def parcel_report(lender_slug, parcel_id):
         season=season,
         exposures=exposures,
         stats=stats,
+        coverage=coverage,
         today=date.today(),
     )
 
@@ -315,6 +407,7 @@ def parcel_exposure_json(lender_slug, parcel_id):
         })
 
     exposures, stats = _compute_parcel_exposures(parcel, season)
+    coverage = _neighboring_coverage(parcel, season)
     return jsonify({
         "lender": {"slug": lender.slug, "name": lender.name},
         "parcel": {
@@ -325,6 +418,21 @@ def parcel_exposure_json(lender_slug, parcel_id):
             "state": parcel.state,
             "county": parcel.county,
             "crop_type": parcel.crop_type,
+        },
+        "coverage": {
+            "on_parcel_camera_count": len(coverage["on_parcel_cameras"]),
+            "neighbor_camera_count": len(coverage["neighbors"]),
+            "cutoff_km": coverage["cutoff_km"],
+            "neighbors": [
+                {
+                    "camera_label": n["camera"].camera_label,
+                    "camera_name": n["camera"].name,
+                    "distance_km": n["distance_km"],
+                    "proximity_confidence": n["proximity_confidence"],
+                    "species_contributions": n["species_contributions"],
+                }
+                for n in coverage["neighbors"]
+            ],
         },
         "season": {
             "id": season.id,

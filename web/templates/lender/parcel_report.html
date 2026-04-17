@@ -245,6 +245,90 @@
   </div>
   {% endif %}
 
+  <!-- Coverage Sources (DetectionIngest bridge) -->
+  {% if coverage and (coverage.on_parcel_cameras or coverage.neighbors) %}
+  <div class="mb-8">
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-gray-100 mb-3">
+      Coverage sources
+    </h2>
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-5">
+      <!-- On-parcel cameras -->
+      <div class="species-card">
+        <div class="field-label mb-2">Primary — on-parcel cameras</div>
+        <div class="text-2xl font-bold text-slate-900 dark:text-white mb-3">
+          {{ coverage.on_parcel_cameras|length }}
+          <span class="text-xs text-slate-500 dark:text-gray-400 font-medium">
+            camera{{ 's' if coverage.on_parcel_cameras|length != 1 else '' }}
+          </span>
+        </div>
+        {% if coverage.on_parcel_cameras %}
+          <ul class="text-xs text-slate-600 dark:text-gray-300 space-y-1">
+            {% for cam in coverage.on_parcel_cameras %}
+              <li class="flex items-baseline gap-2">
+                <span class="mono text-slate-700 dark:text-gray-200">{{ cam.camera_label }}</span>
+                <span class="text-slate-500 dark:text-gray-400">
+                  {{ cam.name or '' }}{% if cam.placement_context %} · {{ cam.placement_context }}{% endif %}
+                </span>
+              </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+        <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-[11px] text-slate-500 dark:text-gray-400 leading-relaxed">
+          These cameras drive the density estimate above. Full proximity confidence (1.0).
+        </div>
+      </div>
+
+      <!-- Neighboring cameras (DetectionIngest supplementary) -->
+      <div class="species-card">
+        <div class="field-label mb-2">
+          Supplementary — neighboring coverage
+          <span class="text-[10px] text-slate-400 dark:text-gray-500 font-normal normal-case">
+            (&lt; {{ "%.1f"|format(coverage.cutoff_km) }} km from boundary)
+          </span>
+        </div>
+        <div class="text-2xl font-bold text-slate-900 dark:text-white mb-3">
+          {{ coverage.neighbors|length }}
+          <span class="text-xs text-slate-500 dark:text-gray-400 font-medium">
+            camera{{ 's' if coverage.neighbors|length != 1 else '' }}
+          </span>
+        </div>
+        {% if coverage.neighbors %}
+          <ul class="text-xs text-slate-600 dark:text-gray-300 space-y-2">
+            {% for n in coverage.neighbors %}
+              <li>
+                <div class="flex items-baseline gap-2">
+                  <span class="mono text-slate-700 dark:text-gray-200">{{ n.camera.camera_label }}</span>
+                  <span class="text-slate-500 dark:text-gray-400">
+                    · {{ "%.2f"|format(n.distance_km) }} km
+                    · conf {{ "%.2f"|format(n.proximity_confidence) }}
+                  </span>
+                </div>
+                {% if n.species_contributions %}
+                  <div class="mt-1 text-[11px] text-slate-500 dark:text-gray-400 ml-1">
+                    {% for s in n.species_contributions %}
+                      {{ s.species_key.replace('_', ' ') }}: {{ s.events }} event{{ 's' if s.events != 1 else '' }}{% if not loop.last %} · {% endif %}
+                    {% endfor %}
+                  </div>
+                {% endif %}
+              </li>
+            {% endfor %}
+          </ul>
+          <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-[11px] text-slate-500 dark:text-gray-400 leading-relaxed">
+            Supplementary ecological signal from cameras on neighboring properties.
+            Proximity confidence decays linearly to zero at {{ "%.1f"|format(coverage.cutoff_km) }} km.
+            <strong class="text-slate-600 dark:text-gray-300">Not incorporated into the on-parcel density estimate</strong> —
+            shown as corroborating observation only.
+          </div>
+        {% else %}
+          <div class="text-xs text-slate-500 dark:text-gray-400">
+            No cameras on neighboring properties within {{ "%.1f"|format(coverage.cutoff_km) }} km of the parcel boundary.
+          </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Other species (informational) -->
   {% set others = exposures | rejectattr('species_key', 'equalto', 'feral_hog') | list %}
   {% if others %}
