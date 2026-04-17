@@ -213,12 +213,16 @@ def portfolio(lender_slug):
             "season_days": stats["season_days"],
         })
 
-    # Sort rows by tier severity then density desc.
-    tier_rank = {t: i for i, t in enumerate(TIER_ORDER)}
+    # Sort rows: Severe -> Low, then Pending/other last. Density desc as
+    # tiebreaker within a tier.
+    tier_rank = {t: i for i, t in enumerate(TIER_ORDER)}  # Low=0, Severe=3
     def _sort_key(r):
         tier = r["hog_tier"]
-        rank = tier_rank.get(tier, 99)
-        return (-rank, -(r["hog_density"] or 0))
+        if tier in tier_rank:
+            # Tiers sort first (is_pending=0), descending by rank.
+            return (0, -tier_rank[tier], -(r["hog_density"] or 0))
+        # Pending / no-detections / unknown go to the bottom.
+        return (1, 0, 0)
     rows.sort(key=_sort_key)
 
     # Portfolio-level tallies for the header.
