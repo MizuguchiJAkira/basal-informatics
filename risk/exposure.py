@@ -137,6 +137,10 @@ class ExposureResult:
     recommendation: str                     # from underlying DensityEstimate
     caveats: List[str] = field(default_factory=list)
     method_notes: List[str] = field(default_factory=list)
+    # Placement-bias-corrected detection rate (Kolowski & Forrester 2017
+    # IPW). When non-None, this is the rate REM actually consumed for
+    # density. When None, REM consumed the raw rate above.
+    detection_rate_adjusted_per_camera_day: Optional[float] = None
 
 
 # -------------------------------------------------------------------------
@@ -212,6 +216,7 @@ def exposure_for_species(
     crop_type: Optional[str],
     recommendation: str,
     detection_rate_per_camera_day: Optional[float] = None,
+    detection_rate_adjusted_per_camera_day: Optional[float] = None,
     caveats: Optional[List[str]] = None,
     method_notes: Optional[List[str]] = None,
     per_hog_annual_usd: float = DEFAULT_PER_HOG_ANNUAL_USD,
@@ -251,6 +256,7 @@ def exposure_for_species(
                 f"{species_key} shown for informational purposes."
             ],
             method_notes=method_notes,
+            detection_rate_adjusted_per_camera_day=detection_rate_adjusted_per_camera_day,
         )
 
     # Hog-specific exposure assessment.
@@ -291,4 +297,5 @@ def exposure_for_species(
         recommendation=recommendation,
         caveats=caveats,
         method_notes=method_notes,
+        detection_rate_adjusted_per_camera_day=detection_rate_adjusted_per_camera_day,
     )

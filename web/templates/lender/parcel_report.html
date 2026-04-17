@@ -184,9 +184,18 @@
             Detection frequency: <strong>{{ "%.3f"|format(hog.found.detection_rate_per_camera_day) }}</strong>
             events per camera-day
             <span class="text-[11px] text-slate-500 dark:text-gray-500 ml-2">
-              (relative abundance index, pre-REM)
+              (raw, pre-bias-correction)
             </span>
           </div>
+          {% if hog.found.detection_rate_adjusted_per_camera_day is not none %}
+          <div>
+            Bias-adjusted rate: <strong>{{ "%.3f"|format(hog.found.detection_rate_adjusted_per_camera_day) }}</strong>
+            events per camera-day
+            <span class="text-[11px] text-slate-500 dark:text-gray-500 ml-2">
+              (placement-IPW corrected; the rate REM consumed)
+            </span>
+          </div>
+          {% endif %}
           {% endif %}
         </div>
         {% endif %}

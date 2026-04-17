@@ -127,6 +127,7 @@ def _compute_parcel_exposures(parcel: Property, season: Season):
             crop_type=parcel.crop_type,
             recommendation=de.recommendation,
             detection_rate_per_camera_day=de.detection_rate,
+            detection_rate_adjusted_per_camera_day=de.detection_rate_adjusted,
             caveats=de.caveats,
             method_notes=de.method_notes,
         )
@@ -492,6 +493,7 @@ def parcel_exposure_json(lender_slug, parcel_id):
                     "density_ci_low": round(e.density_ci_low, 2) if e.density_ci_low is not None else None,
                     "density_ci_high": round(e.density_ci_high, 2) if e.density_ci_high is not None else None,
                     "detection_rate_per_camera_day": round(e.detection_rate_per_camera_day, 4) if e.detection_rate_per_camera_day is not None else None,
+                    "detection_rate_adjusted_per_camera_day": round(e.detection_rate_adjusted_per_camera_day, 4) if e.detection_rate_adjusted_per_camera_day is not None else None,
                     "recommendation": e.recommendation,
                     "caveats": e.caveats,
                     "method_notes": e.method_notes,

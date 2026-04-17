@@ -104,23 +104,76 @@ Bootstrap 95% via 1000 iterations:
 
 ## Bias correction
 
-Camera placement is non-random in operational deployments (feeders,
-trails, water, crossings inflate detection rates by up to 9.7× per
-Kolowski & Forrester 2017). We correct via inverse propensity weighting
-on `placement_context`:
+Camera placement is non-random in operational deployments. Feeders,
+trails, water sources, and food plots inflate per-camera detection
+rates by 1.4-9.7× depending on species and context (Kolowski &
+Forrester 2017). Without correction, REM density inherits this
+inflation directly. The pipeline applies two complementary corrections
+on the per-camera detection rate before it enters REM, and reports
+both alongside the raw rate.
+
+### Method 1 — Literature-prior ratio adjustment (PRIMARY)
+
+For each camera at a non-random context, deflate the observed
+per-camera rate by a per-species, per-context inflation factor sourced
+from the literature, then average across cameras:
 
 ```
-weighted_rate = sum_i (rate_i / P(placement_i | covariates_i))
-              / sum_i (1 / P(placement_i | covariates_i))
+adjusted_rate = mean_i ( rate_i / inflation_factor[species, context_i] )
 ```
 
-Each camera carries a `placement_context` value from the user during
-camera setup. Residual confounding is reported as a caveat in the
-dashboard output.
+Inflation factors for feral hog (`config/settings.py` →
+`bias.placement_ipw.DEFAULT_INFLATION_FACTORS`):
 
-(Implementation note: the bias module ships with the next release.
-Tonight's dashboard reports unweighted rates with the placement caveat
-surfaced explicitly.)
+| Context    | Feral hog | White-tailed deer | Coyote | Source |
+|------------|----------:|------------------:|-------:|--------|
+| feeder     | 10.0×     | 4.0×              | 1.5×   | Kolowski 2017; Mayer & Brisbin 2009 |
+| food_plot  |  6.0×     | 3.0×              | 1.2×   | Kolowski 2017 |
+| water      |  3.0×     | 2.0×              | 2.0×   | Kolowski 2017 |
+| trail      |  4.0×     | 3.0×              | 5.0×   | Kolowski 2017 |
+| random     |  1.0×     | 1.0×              | 1.0×   | reference category |
+| other      |  1.5×     | 1.2×              | 1.3×   | conservative midpoint |
+
+This is the only sound correction when no random-placement cameras
+exist in the deployment, which is typical for hunter-style camera
+arrays. Trade-off: sensitive to inflation-factor accuracy. Default
+factors are mid-range estimates; project-specific calibration tightens
+them.
+
+### Method 2 — Hájek IPW with empirical propensities (DIAGNOSTIC)
+
+The textbook IPW estimator (Hájek 1971; Cassel-Särndal-Wretman 1976)
+reweights the sample to a target placement-context distribution:
+
+```
+weighted_rate = Σ_i ( w_i · rate_i ) / Σ_i w_i
+where w_i = q(context_i) / p(context_i)
+```
+
+`p` is the empirical propensity (proportion of cameras at each
+context); `q` is the target marginal (default: uniform across contexts
+present). Empirical IPW alone cannot correct bias when the entire
+sample is biased — there is no unbiased anchor. It is reported as a
+sanity-check companion to the literature-prior method, not fed into
+REM.
+
+### Diagnostics
+
+For each survey period the pipeline reports Kish's effective sample
+size, ESS = (Σw)² / Σ(w²) (Kish 1965), and the maximum-weight ratio
+max(w) / mean(w). Caveats fire automatically when:
+
+- ESS drops below `n / 2` (significant statistical-power loss from
+  weighting).
+- max-weight ratio exceeds 5× (one camera dominates the estimate;
+  Cole & Hernán 2008 recommend stabilization or trimming).
+- No random-placement cameras in the deployment (literature-prior
+  factors carry the entire correction; cannot be cross-validated).
+
+Each camera carries a `placement_context` value supplied by the
+landowner at setup. Both the raw and bias-adjusted rates appear in the
+dashboard and JSON API. REM density is derived from the adjusted rate;
+the raw rate is reported alongside for transparency.
 
 ## Recommendation logic
 
@@ -158,8 +211,9 @@ accidentally treat the damage dollar figure as a pipeline output:
     "density_animals_per_km2":        5.13,
     "density_ci_low":                 1.29,
     "density_ci_high":                16.64,
-    "detection_rate_per_camera_day":  0.397,
-    "recommendation":                 "recommend_supplementary_survey",
+    "detection_rate_per_camera_day":           0.397,
+    "detection_rate_adjusted_per_camera_day":  0.099,
+    "recommendation":                          "recommend_supplementary_survey",
     "caveats": [
       "Cameras at non-random placements (feeder, trail) violate REM's
        movement-independence assumption. Inverse propensity weighting
