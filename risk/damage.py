@@ -102,7 +102,10 @@ def compute_npv(annual_loss: float, years: int = 10,
 
     NPV = sum(annual_loss / (1 + r)^t for t in 1..years)
     """
-    r = discount_rate or settings.DISCOUNT_RATE
+    # `or` would coerce a legitimate 0.0 discount_rate (= no discount)
+    # to the default. Use explicit None-check so callers can request
+    # an undiscounted NPV.
+    r = settings.DISCOUNT_RATE if discount_rate is None else discount_rate
     return sum(annual_loss / (1 + r) ** t for t in range(1, years + 1))
 
 
