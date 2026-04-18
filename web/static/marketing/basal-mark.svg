@@ -2,17 +2,26 @@
 <!--
   basal / mark.
 
-  One solid disc (the basal-area cross-section / lens body) with one
-  circular aperture carved out as negative space — the observer, the
-  camera, the pin in the landscape. Single-path + fill-rule="evenodd"
-  so no <mask>/<defs>/duplicate-id risk when inlined repeatedly.
-  fill=currentColor adapts to the parent text color.
+  Five stacked strata with three triangular peaks rising through
+  V-notches. Reads as a topographic cross-section: the basal layer
+  below, the landscape elevations emerging. Each peak on a lower bar
+  pierces into the bar above via a matching V-notch, creating one
+  continuous "mountain" silhouette per column.
 
-  Proportions tuned for favicon → hero scaling. Hole is 12% of the
-  disc area at r=8 in a 64vb — stays visible at 16px favicon size.
+  Built with fill=currentColor so the mark adapts to whatever color
+  context it's dropped into. No <defs>/<mask> — five plain paths,
+  safe to inline repeatedly in the same DOM (nav + footer).
 -->
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"
-     fill="currentColor" fill-rule="evenodd" aria-label="basal">
-  <path d="M 32 4 a 28 28 0 1 0 0 56 a 28 28 0 1 0 0 -56 z
-           M 44 14 a 8 8 0 1 0 0 16 a 8 8 0 1 0 0 -16 z"/>
+     fill="currentColor" aria-label="basal">
+  <!-- Bar 1 — has a V-notch at x=20 to receive the peak from bar 2 -->
+  <path d="M 4 2 L 60 2 L 60 10 L 24 10 L 20 6 L 16 10 L 4 10 Z"/>
+  <!-- Bar 2 — peak at x=20 rising into bar 1's notch; notch at x=44 -->
+  <path d="M 4 14 L 16 14 L 20 10 L 24 14 L 60 14 L 60 22 L 48 22 L 44 18 L 40 22 L 4 22 Z"/>
+  <!-- Bar 3 — peak at x=44 rising into bar 2's notch; notch at x=32 -->
+  <path d="M 4 26 L 40 26 L 44 22 L 48 26 L 60 26 L 60 34 L 36 34 L 32 30 L 28 34 L 4 34 Z"/>
+  <!-- Bar 4 — peak at x=32 rising into bar 3's notch -->
+  <path d="M 4 38 L 28 38 L 32 34 L 36 38 L 60 38 L 60 46 L 4 46 Z"/>
+  <!-- Bar 5 — base layer, no peak or notch -->
+  <path d="M 4 50 L 60 50 L 60 58 L 4 58 Z"/>
 </svg>

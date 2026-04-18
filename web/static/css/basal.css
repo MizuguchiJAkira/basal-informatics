@@ -156,8 +156,8 @@ body.basal a:hover { text-decoration: underline; text-underline-offset: 4px; tex
   display: flex; align-items: center; justify-content: space-between;
   gap: 24px;
 }
-.b-brand { display: flex; align-items: center; gap: 10px; color: var(--bone); }
-.b-brand svg { width: 28px; height: 28px; color: var(--bone); }
+.b-brand { display: flex; align-items: center; gap: 12px; color: var(--bone); }
+.b-brand svg { width: 32px; height: 32px; color: var(--bone); display: block; }
 .b-brand-text {
   font-family: var(--font-display);
   font-size: 22px; letter-spacing: -0.02em; font-weight: 400;
