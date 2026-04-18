@@ -122,6 +122,29 @@
     </div>
   </div>
 
+  {# Leaflet CSS/JS — only loaded on pages that need a map. #}
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  {# Executive summary — one-glance finding block at the very top so
+     a loan-review committee member can close the report after reading
+     this without scrolling further. Mirrors executive_summary.py. #}
+  {% if exec_summary and exec_summary.headline %}
+  <div class="mb-6 p-4 border-l-4 border-teal-500 bg-teal-50/40 dark:bg-teal-900/10 rounded-r">
+    <div class="text-[11px] uppercase tracking-widest text-teal-700 dark:text-teal-300 mb-1">
+      Executive summary
+    </div>
+    <div class="text-sm text-slate-800 dark:text-gray-100 font-medium">
+      {{ exec_summary.headline }}
+    </div>
+    {% if exec_summary.bullets %}
+    <ul class="mt-2 space-y-1 text-[13px] text-slate-600 dark:text-gray-300 list-disc list-inside">
+      {% for b in exec_summary.bullets %}<li>{{ b }}</li>{% endfor %}
+    </ul>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <!-- Parcel metadata strip -->
   <div class="grid grid-cols-2 md:grid-cols-6 gap-4 pb-5 mb-6 hr-thin">
     <div>
@@ -156,6 +179,104 @@
       </div>
     </div>
   </div>
+
+  {# Parcel map — boundary polygon + on-parcel cameras as pins
+     (placement_context-colored) + neighboring-lease cameras (hollow
+     pins) if any. Mirrors the parcel_map.py PDF section. #}
+  {% if parcel.boundary_geojson %}
+  <div class="mb-8">
+    <div class="flex items-end justify-between mb-2">
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-gray-100">
+        Parcel map &amp; camera layout
+      </h2>
+      <div class="text-[11px] text-slate-500 dark:text-gray-400 flex gap-3 flex-wrap">
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block w-2 h-2 rounded-full" style="background:#0d9488"></span> random
+        </span>
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block w-2 h-2 rounded-full" style="background:#dc2626"></span> feeder
+        </span>
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block w-2 h-2 rounded-full" style="background:#ea580c"></span> trail
+        </span>
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block w-2 h-2 rounded-full" style="background:#2563eb"></span> water
+        </span>
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block w-2 h-2 rounded-full" style="background:#9333ea"></span> food_plot
+        </span>
+        <span class="inline-flex items-center gap-1">
+          <span class="inline-block w-2 h-2 rounded-full ring-1 ring-slate-400" style="background:transparent"></span> neighbor
+        </span>
+      </div>
+    </div>
+    <div id="parcel-map" style="height: 360px;"
+         class="rounded border border-gray-200 dark:border-gray-700"></div>
+    <div class="mt-2 text-[11px] text-slate-500 dark:text-gray-400">
+      Parcel boundary from loan-collateral record; camera pins from
+      landowner-registered GPS at setup.
+      Placement-context pin color drives the Kolowski-2017 IPW
+      inflation-factor lookup used in the REM bias correction.
+    </div>
+  </div>
+
+  <script>
+  (function(){
+    var boundary = {{ parcel.boundary_geojson | safe }};
+    var onParcelCams = {{ on_parcel_cams_json | tojson }};
+    var neighborCams = {{ neighbor_cams_json | tojson }};
+
+    var map = L.map('parcel-map', {
+      scrollWheelZoom: false,
+      attributionControl: true,
+    });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap contributors',
+    }).addTo(map);
+
+    var boundaryLayer = L.geoJSON(boundary, {
+      style: { color: '#0f172a', weight: 2, fillColor: '#0f172a',
+               fillOpacity: 0.06 },
+    }).addTo(map);
+    map.fitBounds(boundaryLayer.getBounds(), { padding: [20, 20] });
+
+    var ctxColor = {
+      random:    '#0d9488',
+      feeder:    '#dc2626',
+      trail:     '#ea580c',
+      water:     '#2563eb',
+      food_plot: '#9333ea',
+      other:     '#64748b',
+      unknown:   '#64748b',
+    };
+    onParcelCams.forEach(function(c){
+      var color = ctxColor[(c.placement_context || 'unknown').toLowerCase()] || '#64748b';
+      L.circleMarker([c.lat, c.lon], {
+        radius: 7, color: '#fff', weight: 2,
+        fillColor: color, fillOpacity: 0.95,
+      }).bindPopup(
+        '<div style="font-size:12px">'+
+          '<strong>'+(c.label||'')+'</strong><br>'+
+          (c.name||'')+'<br>'+
+          '<span style="color:#64748b">'+(c.placement_context||'unknown')+'</span>'+
+        '</div>'
+      ).addTo(map);
+    });
+    neighborCams.forEach(function(c){
+      L.circleMarker([c.lat, c.lon], {
+        radius: 6, color: '#64748b', weight: 1.5,
+        fillColor: 'transparent', fillOpacity: 0, dashArray: '2,2',
+      }).bindPopup(
+        '<div style="font-size:12px">'+
+          '<strong>'+(c.label||'neighbor')+'</strong><br>'+
+          'Neighboring lease · '+(c.distance_km||'?').toFixed(2)+' km'+
+        '</div>'
+      ).addTo(map);
+    });
+  })();
+  </script>
+  {% endif %}
 
   <!-- Primary finding banner -->
   {% set hog = namespace(found=None) %}
@@ -315,6 +436,43 @@
     </div>
     {% endif %}
 
+    {# Temporal activity — hog hourly distribution across all cameras.
+       Mirrors temporal.py PDF section. Nocturnal peak (20:00-04:00)
+       is the signature an ecologist immediately reads as credible. #}
+    {% if hog_hourly and hog_hourly | sum > 0 %}
+    {% set max_h = hog_hourly | max %}
+    <div class="mt-6 pt-5 hr-thin">
+      <div class="flex items-end justify-between mb-2">
+        <div class="field-label">Temporal activity (feral hog, all cameras this period)</div>
+        {% if hog_peak_hour is not none %}
+        <div class="text-[11px] text-slate-500 dark:text-gray-400">
+          Peak hour:
+          <strong>{{ "%02d"|format(hog_peak_hour) }}:00</strong>
+          {% if hog_peak_hour >= 20 or hog_peak_hour < 6 %}
+            <span class="ml-1">(nocturnal — typical for hogs)</span>
+          {% endif %}
+        </div>
+        {% endif %}
+      </div>
+      <div class="flex items-end gap-[2px] h-16 mt-2"
+           style="font-size:0">
+        {% for count in hog_hourly %}
+          {% set pct = (count / max_h * 100) if max_h > 0 else 0 %}
+          <div class="flex-1 relative group">
+            <div class="mx-auto rounded-t"
+                 style="height: {{ pct }}%; min-height: 1px;
+                        width: 80%;
+                        background: {% if loop.index0 >= 20 or loop.index0 < 6 %}#0f172a{% else %}#64748b{% endif %};">
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+      <div class="flex justify-between text-[9px] text-slate-400 dark:text-gray-500 mt-1 mono">
+        <span>00</span><span>06</span><span>12</span><span>18</span><span>23</span>
+      </div>
+    </div>
+    {% endif %}
+
     <!-- Recommendation + caveats -->
     <div class="mt-6 pt-5 hr-thin grid grid-cols-1 md:grid-cols-2 gap-5">
       <div>
@@ -432,9 +590,15 @@
   {% set others = exposures | rejectattr('species_key', 'equalto', 'feral_hog') | list %}
   {% if others %}
   <div class="mb-8">
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-gray-100 mb-3">
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-gray-100 mb-1">
       Other species detected
     </h2>
+    <div class="text-[12px] text-slate-500 dark:text-gray-400 mb-3">
+      Tier classification is defined for feral hog only at v1. Non-hog
+      species are surfaced with the same relative-abundance index and
+      REM density (when species-specific daily-distance values are
+      published) but without a tier cutoff.
+    </div>
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
       {% for e in others %}
         <div class="species-card">
@@ -446,14 +610,35 @@
           </div>
           {% if e.density_animals_per_km2 is not none %}
             <div class="text-sm mono text-slate-700 dark:text-gray-200">
-              {{ "%.2f"|format(e.density_animals_per_km2) }} /km²
+              Density <strong>{{ "%.2f"|format(e.density_animals_per_km2) }}</strong>
+              <span class="text-slate-500 dark:text-gray-400">/km²</span>
             </div>
-            <div class="ci-note mt-1">
-              CI {{ "%.2f"|format(e.density_ci_low) }} – {{ "%.2f"|format(e.density_ci_high) }}
+            <div class="ci-note mt-0.5">
+              95% CI {{ "%.2f"|format(e.density_ci_low) }} – {{ "%.2f"|format(e.density_ci_high) }}
             </div>
           {% else %}
             <div class="text-sm text-slate-500 dark:text-gray-400">
-              Density not computed (no published daily travel distance).
+              Density not computed (no published daily-travel-distance value).
+            </div>
+          {% endif %}
+          {% if e.detection_rate_per_camera_day is not none %}
+            <div class="text-[12px] mono text-slate-600 dark:text-gray-300 mt-2">
+              Rate {{ "%.3f"|format(e.detection_rate_per_camera_day) }} events/cam-day
+              <span class="text-slate-400 dark:text-gray-500">(raw)</span>
+              {% if e.detection_rate_adjusted_per_camera_day is not none %}
+                · {{ "%.3f"|format(e.detection_rate_adjusted_per_camera_day) }} <span class="text-slate-400 dark:text-gray-500">(adjusted)</span>
+              {% endif %}
+            </div>
+          {% endif %}
+          {% if e.recommendation %}
+            <div class="text-[11px] text-slate-500 dark:text-gray-400 mt-2">
+              {% if e.recommendation == 'sufficient_for_decision' %}
+                Sufficient data for informational reporting.
+              {% elif e.recommendation == 'recommend_supplementary_survey' %}
+                Confidence interval wide; supplementary survey recommended.
+              {% else %}
+                Insufficient data for density estimate at this sample size.
+              {% endif %}
             </div>
           {% endif %}
         </div>
@@ -462,22 +647,159 @@
   </div>
   {% endif %}
 
-  <!-- Methodology footer -->
-  <div class="mt-10 pt-6 hr-thin text-xs text-slate-500 dark:text-gray-400 leading-relaxed">
-    <div class="font-semibold uppercase tracking-widest text-slate-700 dark:text-gray-300 mb-2">
-      Methodology
+  {# Data-confidence grade (A-D) with rubric. Mirrors confidence.py
+     PDF section. Gives a loan-review committee a single-letter
+     quality read plus the per-dimension breakdown behind it. #}
+  {% if confidence %}
+  <div class="mb-8">
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-gray-100 mb-3">
+      Data confidence
+    </h2>
+    <div class="flex items-stretch gap-4">
+      {% set grade_color = {
+        'A': 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
+        'B': 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 border-teal-300 dark:border-teal-700',
+        'C': 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700',
+        'D': 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700',
+      } %}
+      <div class="flex flex-col items-center justify-center
+                  px-6 py-4 rounded border
+                  {{ grade_color.get(confidence.grade, '') }}">
+        <div class="text-5xl font-bold mono leading-none">{{ confidence.grade }}</div>
+        <div class="text-[11px] uppercase tracking-widest mt-2">
+          {{ confidence.score }} / {{ confidence.max }}
+        </div>
+      </div>
+      <div class="flex-1">
+        <table class="w-full text-[13px]">
+          <tbody>
+            {% for r in confidence.rows %}
+            <tr class="border-b border-slate-100 dark:border-gray-800 last:border-0">
+              <td class="py-1.5 pr-3 font-medium text-slate-700 dark:text-gray-200 w-44">
+                {{ r.label }}
+              </td>
+              <td class="py-1.5 pr-3 w-6 text-center
+                         {% if r.score == 2 %}text-emerald-600 dark:text-emerald-400{% elif r.score == 1 %}text-amber-600 dark:text-amber-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
+                <span class="font-bold">{{ r.mark }}</span>
+              </td>
+              <td class="py-1.5 text-slate-600 dark:text-gray-300 text-[12px]">
+                {{ r.detail }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
-    Density estimated via the Random Encounter Model (Rowcliffe et al. 2008)
-    from {{ stats.total_events }} independent detections across {{ stats.n_cameras }} cameras
-    over {{ stats.season_days }} survey days. Confidence intervals
-    via 1,000-iteration nonparametric bootstrap over cameras with
-    truncated-normal perturbation of published daily-travel-distance values.
-    Tier assignment per Mayer &amp; Brisbin 2009 bins:
-    &lt;2 Low · 2–5 Moderate · 5–10 Elevated · ≥10 Severe (animals/km²).
-    Cameras at non-random placements (feeder, trail, water) violate REM's
-    movement-independence assumption; inverse propensity weighting corrects
-    for residual bias but does not eliminate it. Full methodology:
-    <a href="/static/METHODOLOGY.pdf" class="text-teal-600 dark:text-teal-400 hover:underline">one-page brief</a>.
   </div>
+  {% endif %}
+
+  {# Methodology appendix — inline, mirrors report/sections/methodology.py.
+     Rendered collapsed by default to keep the report scannable; a
+     reviewer clicks to expand the full text + references. #}
+  <details class="mt-10 pt-6 hr-thin text-xs text-slate-500 dark:text-gray-400 leading-relaxed group">
+    <summary class="list-none cursor-pointer select-none flex items-center justify-between">
+      <div class="font-semibold uppercase tracking-widest text-slate-700 dark:text-gray-300">
+        Methodology
+      </div>
+      <span class="text-[10px] text-slate-400 dark:text-gray-500
+                   group-open:hidden">click to expand &darr;</span>
+      <span class="text-[10px] text-slate-400 dark:text-gray-500
+                   hidden group-open:inline">click to collapse &uarr;</span>
+    </summary>
+
+    <div class="mt-4 space-y-4">
+      <div>
+        <div class="font-semibold text-slate-700 dark:text-gray-200 mb-1">What this report measures</div>
+        <p>
+          Three pipeline outputs, in order of methodological primacy:
+          <strong>detection frequency</strong> (events per camera-day, the
+          raw relative-abundance index); <strong>density</strong> (animals/km²,
+          via the Random Encounter Model); <strong>tier</strong>
+          (Low / Moderate / Elevated / Severe, feral-hog only at v1, per
+          Mayer &amp; Brisbin 2009). The composite <strong>Exposure Score</strong>
+          (0–100) is a piecewise-linear transform of density anchored on
+          the tier cutoffs. The modeled annual-damage projection is
+          <em>not</em> a pipeline output — it's scaled from Anderson 2016
+          per-hog figures × area × crop modifier and labeled
+          MODELED PROJECTION throughout.
+        </p>
+      </div>
+
+      <div>
+        <div class="font-semibold text-slate-700 dark:text-gray-200 mb-1">Density estimator (REM)</div>
+        <p>
+          <span class="mono">D = (y / t) × π / (v × r × (2 + θ))</span><br>
+          where <em>y/t</em> is detections per camera-day, <em>v</em> is
+          species-specific mean daily travel distance (hog 6.0 km/day — Kay 2017;
+          white-tailed deer 1.5 km/day — Webb 2010; coyote 10.0 km/day — Andelt 1985),
+          <em>r</em> is the camera detection radius (0.015 km),
+          <em>θ</em> is the camera detection angle (0.7 rad).
+          This report used <strong>{{ stats.total_events }}</strong> independent detections
+          across <strong>{{ stats.n_cameras }}</strong> cameras over
+          <strong>{{ stats.season_days }}</strong> survey days. Confidence intervals
+          via 1,000-iteration nonparametric bootstrap over cameras with
+          truncated-normal perturbation of <em>v</em>.
+        </p>
+      </div>
+
+      <div>
+        <div class="font-semibold text-slate-700 dark:text-gray-200 mb-1">Placement-bias correction</div>
+        <p>
+          Kolowski &amp; Forrester (2017) document 1.4–9.7× detection
+          inflation at non-random camera placements vs. random. The
+          pipeline deflates per-camera rates by a per-species, per-context
+          inflation factor (feral hog: feeder 10×, food_plot 6×, trail 4×,
+          water 3×, random 1×, other 1.5×), then averages across cameras.
+          A second Hájek IPW estimator (Cassel-Särndal-Wretman 1976;
+          Hájek 1971) with empirical propensities is reported alongside
+          as a diagnostic. Diagnostic caveats fire automatically when
+          effective sample size (Kish 1965) drops below n/2, the maximum-
+          weight ratio exceeds 5× (Cole &amp; Hernán 2008), or no random-
+          placement cameras anchor the deployment.
+        </p>
+      </div>
+
+      <div>
+        <div class="font-semibold text-slate-700 dark:text-gray-200 mb-1">Recommendation flags</div>
+        <p>
+          <span class="mono">insufficient_data</span> &larr; &lt; 100 camera-days OR &lt; 20 events.
+          <span class="mono">recommend_supplementary_survey</span> &larr; CI upper / lower ratio &gt; 1.5.
+          <span class="mono">sufficient_for_decision</span> &larr; otherwise.
+        </p>
+      </div>
+
+      <div>
+        <div class="font-semibold text-slate-700 dark:text-gray-200 mb-1">Limitations &amp; out-of-scope</div>
+        <p>
+          Detection frequency is a relative-abundance index; absolute
+          density via REM rests on the daily-distance values and
+          detection-cone parameters listed above, both carrying inter-
+          region uncertainty not fully captured by the bootstrap CI.
+          Damage projections are model-based, not observed losses.
+          Tier classification is defined for feral hog only at v1;
+          other species appear with density only.
+        </p>
+      </div>
+
+      <div>
+        <div class="font-semibold text-slate-700 dark:text-gray-200 mb-1">References</div>
+        <ul class="space-y-0.5 text-[11px] leading-snug">
+          <li>Andelt W.F. (1985) Wildlife Monographs 94: 3–45.</li>
+          <li>Anderson A. et al. (2016) Crop Protection 89: 89–94.</li>
+          <li>Cassel C.M., Särndal C.E., Wretman J.H. (1976) Biometrika 63: 615–620.</li>
+          <li>Cole S.R., Hernán M.A. (2008) Am. J. Epidemiology 168: 656–664.</li>
+          <li>Hájek J. (1971) Foundations of Statistical Inference.</li>
+          <li>Kay S.L. et al. (2017) Movement Ecology 5: 14.</li>
+          <li>Kish L. (1965) Survey Sampling. Wiley.</li>
+          <li>Kolowski J.M., Forrester T.D. (2017) PLOS ONE 12: e0186679.</li>
+          <li>Mayer J.J., Brisbin I.L. (2009) Wild Pigs: Biology, Damage, Control Techniques and Management.</li>
+          <li>Rowcliffe J.M., Field J., Turvey S.T., Carbone C. (2008) J. Appl. Ecol. 45: 1228–1236.</li>
+          <li>Rowcliffe J.M. et al. (2012) Methods Ecol. Evol. 3: 653–662.</li>
+          <li>Webb S.L., Hewitt D.G., Hellickson M.W. (2010) J. Wildlife Mgmt. 74: 1416–1421.</li>
+        </ul>
+      </div>
+    </div>
+  </details>
 </div>
 {% endblock %}
