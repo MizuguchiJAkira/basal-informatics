@@ -47,6 +47,25 @@ def db_init():
         release_connection(conn)
 
 
+@db.command("migrate")
+@click.option("--status", is_flag=True,
+              help="Show applied / pending migrations without applying.")
+@click.option("--db-url", default=None,
+              help="Database URL (overrides DATABASE_URL).")
+def db_migrate(status, db_url):
+    """Apply pending SQL migrations from db/migrations/.
+
+    Wraps scripts/migrate.py — use this from the DO App Platform
+    console (``python manage.py db migrate``) to evolve the prod
+    schema for changes that db.create_all() can't handle
+    (new columns on existing tables, etc.).
+    """
+    from scripts import migrate as _migrate
+
+    rc = _migrate.run(db_url=db_url, status_only=status)
+    sys.exit(rc)
+
+
 @db.command("seed")
 def db_seed():
     """Generate Edwards Plateau demo data and insert into PostGIS."""
