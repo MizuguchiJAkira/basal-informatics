@@ -521,9 +521,30 @@ class UploadToken(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def is_valid(self) -> bool:
+        """True if the token can be used to START a new upload.
+
+        Fails on revoked, expired, OR exhausted. This is the gate for
+        ``POST /u/<token>/uploads/request``.
+        """
         if self.revoked:
             return False
         if self.uses_remaining is not None and self.uses_remaining <= 0:
+            return False
+        if self.expires_at is not None and self.expires_at < datetime.utcnow():
+            return False
+        return True
+
+    def is_readable(self) -> bool:
+        """True if the token can be used to CONFIRM / POLL STATUS on
+        an upload already in flight.
+
+        Fails on revoked or expired only — not on uses_remaining == 0.
+        A single-use token naturally exhausts itself at confirm time,
+        but the landowner still needs to poll ``/status`` for minutes
+        while the worker runs. The poll link must outlive the token's
+        usage count.
+        """
+        if self.revoked:
             return False
         if self.expires_at is not None and self.expires_at < datetime.utcnow():
             return False

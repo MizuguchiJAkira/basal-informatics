@@ -61,12 +61,25 @@ PRESIGN_TTL_SECONDS = 900
 # Helpers
 # ---------------------------------------------------------------------------
 
-def _load_token(token_str: str) -> UploadToken:
-    """Return the UploadToken row if valid, else None."""
+def _load_token(token_str: str, *, for_new_upload: bool = True) -> UploadToken:
+    """Return the UploadToken row if usable for the caller's action.
+
+    for_new_upload=True  (default) — caller is starting a new upload;
+                          token must pass is_valid() (revoked, expired,
+                          or exhausted all reject).
+
+    for_new_upload=False — caller is confirming or polling an in-flight
+                          upload; token must pass is_readable()
+                          (revoked or expired reject; exhausted OK).
+                          Single-use tokens exhaust on confirm but the
+                          landowner still needs to poll /status.
+    """
     t = UploadToken.query.filter_by(token=token_str).first()
-    if t and t.is_valid():
-        return t
-    return None
+    if not t:
+        return None
+    if for_new_upload:
+        return t if t.is_valid() else None
+    return t if t.is_readable() else None
 
 
 def _is_safe_filename(name: str) -> bool:
@@ -176,7 +189,9 @@ def request_upload(token):
     "/<string:token>/uploads/<int:upload_id>/confirm", methods=["POST"]
 )
 def confirm_upload(token, upload_id):
-    t = _load_token(token)
+    # Confirm uses is_valid() — a single-use token must still have one
+    # use left at confirm time. Only the /status endpoint is permissive.
+    t = _load_token(token, for_new_upload=True)
     if not t:
         return jsonify({"error": "Invalid or expired upload token."}), 404
     upload = Upload.query.get(upload_id)
@@ -249,7 +264,10 @@ def confirm_upload(token, upload_id):
     "/<string:token>/uploads/<int:upload_id>/status", methods=["GET"]
 )
 def upload_status(token, upload_id):
-    t = _load_token(token)
+    # Status polling uses is_readable() — an exhausted single-use
+    # token should still be usable to check the status of the one
+    # upload it initiated.
+    t = _load_token(token, for_new_upload=False)
     if not t:
         return jsonify({"error": "Invalid or expired upload token."}), 404
     upload = Upload.query.get(upload_id)
