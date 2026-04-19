@@ -340,14 +340,38 @@ def issue_token(property_id):
     db.session.add(t)
     db.session.commit()
 
-    return jsonify({
+    share_url = _share_url(token_str)
+    resp = {
         "token": token_str,
-        "share_url": _share_url(token_str),
+        "share_url": share_url,
         "property_id": prop.id,
         "uses_remaining": t.uses_remaining,
         "expires_at": expires_at.isoformat(),
         "label": t.label,
-    }), 201
+    }
+
+    # Best-effort email dispatch — token is already persisted, so a
+    # send failure must not 500 the caller. We still surface the
+    # result so the UI can show "emailed Phil" vs. "copy this link".
+    if body.get("send_email") and email_hint and "@" in email_hint:
+        try:
+            from web.notify import send_upload_invite
+            sent = send_upload_invite(
+                to_email=email_hint,
+                parcel_name=prop.name,
+                share_url=share_url,
+                expires_at_iso=expires_at.isoformat(),
+                label=label,
+            )
+            resp["email_sent"] = bool(sent)
+            if not sent:
+                resp["email_error"] = "provider declined"
+        except Exception as e:  # noqa: BLE001
+            logger.exception("send_upload_invite failed for token %s", token_str[:8])
+            resp["email_sent"] = False
+            resp["email_error"] = str(e)
+
+    return jsonify(resp), 201
 
 
 @upload_tokens_bp.route(
