@@ -166,6 +166,16 @@ def generate_report(
     ])
 
     # ── Build story ──
+    #
+    # Sections flow. The section_bar (hairline rule + display title)
+    # is the visual divider; an explicit PageBreak between every
+    # section was forcing half-empty pages where the next section's
+    # header + short content would have fit below its predecessor.
+    # Each render() ends with a small spacer before the next section
+    # title takes over.
+    #
+    # The cover keeps its own PageBreak (it's a bespoke template).
+    # Back matter keeps its break so the sign-off page is clean.
     story = []
 
     # Cover page
@@ -175,30 +185,30 @@ def generate_report(
 
     # Executive summary
     story.extend(executive_summary.render(assessment))
-    story.append(PageBreak())
+    story.append(Spacer(1, 0.35 * inch))
 
     # Parcel map
     story.extend(parcel_map.render(
         assessment, detections=detections,
         cameras_json=cameras_json,
         parcel_geojson=parcel_geojson))
-    story.append(PageBreak())
+    story.append(Spacer(1, 0.35 * inch))
 
     # Species inventory table
     story.extend(species_table.render(assessment))
-    story.append(PageBreak())
+    story.append(Spacer(1, 0.35 * inch))
 
     # Damage projections
     story.extend(damage_projection.render(assessment))
-    story.append(PageBreak())
+    story.append(Spacer(1, 0.35 * inch))
 
     # Temporal analysis
     story.extend(temporal.render(assessment, detections=detections))
-    story.append(PageBreak())
+    story.append(Spacer(1, 0.35 * inch))
 
     # Data confidence
     story.extend(confidence.render(assessment))
-    story.append(PageBreak())
+    story.append(Spacer(1, 0.35 * inch))
 
     # Methodology
     story.extend(methodology.render(assessment))
