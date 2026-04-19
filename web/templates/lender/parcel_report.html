@@ -694,6 +694,127 @@
   </div>
   {% endif %}
 
+  {# Classifier accuracy — hunter-labeled ground-truth vs classifier
+     predictions. Only rendered when at least one ProcessingJob on this
+     parcel has accuracy_report_json (filenames of the form
+     "CF Pig 2025-05-19 Goldilocks MH.JPG"). Mirrors the confidence
+     block's editorial voice: mono tabular numerals, understated
+     palette, every headline in context. #}
+  {% if accuracy %}
+  <div class="mb-8">
+    <h2 class="text-lg font-semibold text-slate-800 dark:text-gray-100 mb-1"
+        style="font-family: 'Fraunces', Georgia, serif;">
+      Classifier accuracy
+    </h2>
+    <div class="text-[12px] text-slate-500 dark:text-gray-400 mb-3">
+      Measured against hunter-labeled filenames supplied with the SD-card
+      upload. Reconciles every labeled photo against the classifier's
+      prediction. Photos without a hunter label are excluded from the
+      denominator.
+      {% if accuracy.n_jobs > 1 %}
+        Aggregated across {{ accuracy.n_jobs }} labeled uploads on this parcel.
+      {% endif %}
+    </div>
+    <div class="species-card">
+      <div class="flex items-baseline flex-wrap gap-x-4 gap-y-1 mb-3">
+        <span class="text-2xl font-bold mono text-slate-900 dark:text-white">
+          {{ accuracy.n_matched }} of {{ accuracy.n_labeled }}
+        </span>
+        <span class="text-sm text-slate-600 dark:text-gray-300">
+          hunter-labeled photos matched
+        </span>
+        <span class="tier-badge tier-{% if accuracy.pct_matched >= 90 %}Low{% elif accuracy.pct_matched >= 75 %}Moderate{% elif accuracy.pct_matched >= 60 %}Elevated{% else %}Severe{% endif %}">
+          {{ "%.0f"|format(accuracy.pct_matched) }}%
+        </span>
+      </div>
+
+      <div class="grid grid-cols-3 gap-3 mb-4 text-[12px]">
+        <div>
+          <div class="field-label">Matched</div>
+          <div class="mono text-lg font-semibold text-emerald-600 dark:text-emerald-400">
+            {{ accuracy.n_matched }}
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Missed</div>
+          <div class="mono text-lg font-semibold text-amber-600 dark:text-amber-400">
+            {{ accuracy.n_missed }}
+          </div>
+          <div class="text-[10px] text-slate-500 dark:text-gray-400">
+            labeled animal, classifier empty
+          </div>
+        </div>
+        <div>
+          <div class="field-label">Confused</div>
+          <div class="mono text-lg font-semibold text-rose-600 dark:text-rose-400">
+            {{ accuracy.n_confused }}
+          </div>
+          <div class="text-[10px] text-slate-500 dark:text-gray-400">
+            labeled X, classifier said Y
+          </div>
+        </div>
+      </div>
+
+      {% if accuracy.per_species %}
+      <table class="w-full text-[13px]">
+        <thead>
+          <tr class="border-b border-slate-200 dark:border-gray-700">
+            <th class="py-1.5 pr-3 text-left font-semibold text-slate-700 dark:text-gray-200"
+                style="font-family: 'Fraunces', Georgia, serif;">
+              Species
+            </th>
+            <th class="py-1.5 pr-3 text-right font-semibold text-slate-700 dark:text-gray-200"
+                style="font-family: 'Fraunces', Georgia, serif;">
+              Labeled
+            </th>
+            <th class="py-1.5 pr-3 text-right font-semibold text-slate-700 dark:text-gray-200"
+                style="font-family: 'Fraunces', Georgia, serif;">
+              Matched
+            </th>
+            <th class="py-1.5 pr-3 text-right font-semibold text-slate-700 dark:text-gray-200"
+                style="font-family: 'Fraunces', Georgia, serif;">
+              Missed
+            </th>
+            <th class="py-1.5 text-left font-semibold text-slate-700 dark:text-gray-200"
+                style="font-family: 'Fraunces', Georgia, serif;">
+              Confused as
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for row in accuracy.per_species %}
+          <tr class="border-b border-slate-100 dark:border-gray-800 last:border-0">
+            <td class="py-1.5 pr-3 text-slate-700 dark:text-gray-200">
+              {{ row.species_label }}
+            </td>
+            <td class="py-1.5 pr-3 mono text-right text-slate-700 dark:text-gray-200">
+              {{ row.labeled }}
+            </td>
+            <td class="py-1.5 pr-3 mono text-right text-emerald-700 dark:text-emerald-400">
+              {{ row.matched }}
+            </td>
+            <td class="py-1.5 pr-3 mono text-right text-amber-700 dark:text-amber-400">
+              {{ row.missed }}
+            </td>
+            <td class="py-1.5 text-[12px] text-slate-600 dark:text-gray-300">
+              {{ row.confused_as }}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% endif %}
+
+      <div class="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 text-[11px] text-slate-500 dark:text-gray-400 leading-relaxed">
+        Ground truth derives from the hunter's own filename labels at
+        upload time &mdash; a cheap, auditable spot-check on the
+        SpeciesNet classifier for the exact photo population this report
+        is built on. Not a substitute for a held-out evaluation set.
+      </div>
+    </div>
+  </div>
+  {% endif %}
+
   {# Methodology appendix — inline, mirrors report/sections/methodology.py.
      Rendered collapsed by default to keep the report scannable; a
      reviewer clicks to expand the full text + references. #}

@@ -24,8 +24,8 @@ from flask import Blueprint, abort, render_template, request, jsonify
 from flask_login import current_user, login_required
 
 from config import settings
-from db.models import (Camera, DetectionSummary, LenderClient, Property,
-                       Season, db)
+from db.models import (Camera, DetectionSummary, LenderClient,
+                       ProcessingJob, Property, Season, db)
 from risk.exposure import (TIER_INFO_ONLY, TIER_ORDER, exposure_for_species)
 from risk.population import CameraSurveyEffort, estimate_for_property
 from risk.proximity import (NEIGHBOR_RADIUS_KM, SOURCE_NEIGHBORING,
@@ -476,6 +476,11 @@ def parcel_report(lender_slug, parcel_id):
     # Data-confidence grade (A-D) with per-dimension rubric.
     confidence = _confidence_grade(exposures, stats)
 
+    # Classifier accuracy — only surfaces when a ProcessingJob on this
+    # parcel carried hunter-labeled filenames (ground truth); otherwise
+    # the section is omitted entirely from the template.
+    accuracy = _aggregate_accuracy_reports(parcel)
+
     return render_template(
         "lender/parcel_report.html",
         lender=lender,
@@ -489,10 +494,107 @@ def parcel_report(lender_slug, parcel_id):
         hog_peak_hour=hog_peak_hour,
         exec_summary=exec_summary,
         confidence=confidence,
+        accuracy=accuracy,
         on_parcel_cams_json=on_parcel_cams_json,
         neighbor_cams_json=neighbor_cams_json,
         today=date.today(),
     )
+
+
+def _aggregate_accuracy_reports(parcel: "Property"):
+    """Aggregate classifier accuracy telemetry across every completed
+    ProcessingJob for this parcel that carried hunter-labeled photos.
+
+    Each ProcessingJob.accuracy_report_json is produced by
+    strecker/filename_labels.py::build_accuracy_report when an uploaded
+    ZIP contains filenames like "CF Pig 2025-05-19 Goldilocks MH.JPG"
+    (ground-truth species tokens). Jobs without labeled photos leave
+    the column NULL and are ignored here.
+
+    When a parcel accumulates multiple labeled-upload jobs (different
+    survey windows, different hunters), we sum the scalar counters and
+    merge the per_species buckets: labeled/matched/missed add, and
+    confused_as dicts merge key-by-key.
+
+    Returns None when no job on this parcel has accuracy data — the
+    template uses this to skip the section entirely.
+    """
+    jobs = (ProcessingJob.query
+            .filter(ProcessingJob.property_id == parcel.id)
+            .filter(ProcessingJob.accuracy_report_json.isnot(None))
+            .all())
+    if not jobs:
+        return None
+
+    totals = {"n_total": 0, "n_labeled": 0, "n_matched": 0,
+              "n_missed": 0, "n_confused": 0}
+    per_species = {}
+    n_jobs = 0
+
+    for pj in jobs:
+        raw = pj.accuracy_report_json
+        if not raw:
+            continue
+        try:
+            rep = json.loads(raw) if isinstance(raw, str) else raw
+        except (ValueError, TypeError):
+            continue
+        if not isinstance(rep, dict):
+            continue
+        n_jobs += 1
+        for k in totals:
+            totals[k] += int(rep.get(k) or 0)
+        for sp, bucket in (rep.get("per_species") or {}).items():
+            if not isinstance(bucket, dict):
+                continue
+            agg = per_species.setdefault(
+                sp,
+                {"labeled": 0, "matched": 0, "missed": 0, "confused_as": {}},
+            )
+            agg["labeled"] += int(bucket.get("labeled") or 0)
+            agg["matched"] += int(bucket.get("matched") or 0)
+            agg["missed"] += int(bucket.get("missed") or 0)
+            for other, n in (bucket.get("confused_as") or {}).items():
+                agg["confused_as"][other] = (
+                    agg["confused_as"].get(other, 0) + int(n or 0)
+                )
+
+    if n_jobs == 0 or totals["n_labeled"] == 0:
+        return None
+
+    # Stable display order: most-labeled species first, then alpha.
+    per_species_rows = []
+    for sp, agg in sorted(per_species.items(),
+                          key=lambda kv: (-kv[1]["labeled"], kv[0])):
+        confused_parts = [
+            f"{other.replace('_', ' ')} \u00d7{n}"
+            for other, n in sorted(
+                agg["confused_as"].items(), key=lambda kv: (-kv[1], kv[0])
+            )
+            if n > 0
+        ]
+        per_species_rows.append({
+            "species_key": sp,
+            "species_label": sp.replace("_", " ").title(),
+            "labeled": agg["labeled"],
+            "matched": agg["matched"],
+            "missed": agg["missed"],
+            "confused_as": ", ".join(confused_parts) if confused_parts else "\u2014",
+        })
+
+    pct = (100.0 * totals["n_matched"] / totals["n_labeled"]
+           if totals["n_labeled"] else 0.0)
+
+    return {
+        "n_jobs": n_jobs,
+        "n_total": totals["n_total"],
+        "n_labeled": totals["n_labeled"],
+        "n_matched": totals["n_matched"],
+        "n_missed": totals["n_missed"],
+        "n_confused": totals["n_confused"],
+        "pct_matched": pct,
+        "per_species": per_species_rows,
+    }
 
 
 def _confidence_grade(exposures, stats) -> dict:
