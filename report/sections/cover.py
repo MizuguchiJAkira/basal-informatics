@@ -237,7 +237,7 @@ def render(assessment: dict) -> list:
     elements.append(prep_table)
 
     # ── Footer ────────────────────────────────────────────────────────
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.12 * inch))
     elements.append(_hrule(COVER_CONTENT_WIDTH))
     elements.append(Spacer(1, 0.08 * inch))
 

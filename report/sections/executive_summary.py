@@ -24,77 +24,65 @@ def render(assessment: dict) -> list:
     elements = []
 
     elements.append(section_bar("Executive Summary", CONTENT_WIDTH))
-    elements.append(Spacer(1, 0.22 * inch))
+    elements.append(Spacer(1, 0.12 * inch))
 
-    # ── Risk rating badge ──
-    # McKinsey idiom: a narrow label stacked over a navy-filled
-    # wordmark block. The fill is the risk color (navy descent), so
-    # CRITICAL reads as the deepest navy at a glance.
+    # ── Headline row — two typographic figures, no badges, no fills ──
+    # GS / McKinsey idiom: Fraunces-Bold numerals with italic serif
+    # labels above, separated by a thin vertical rule. No filled
+    # wordmark blocks, no gauges.
+    from reportlab.lib.enums import TA_LEFT as _TA_L
     rating = assessment.get("overall_risk_rating", "MODERATE")
-    rating_fill = risk_color(rating)
-
-    # Wrap rating in a centered Paragraph so ReportLab renders it
-    # truly centred inside the navy fill — plain strings can drift.
-    from reportlab.lib.enums import TA_CENTER
-    _rating_style = ParagraphStyle(
-        "RatingBadge",
-        fontName=FONTS["serif_bold"], fontSize=20, leading=24,
-        textColor=SECTION_BAR_TEXT, alignment=TA_CENTER,
-    )
-    rating_para = Paragraph(rating, _rating_style)
-
-    badge_data = [["OVERALL RATING"], [rating_para]]
-    badge = Table(badge_data, colWidths=[2.4 * inch],
-                  rowHeights=[0.24 * inch, 0.52 * inch])
-    badge.setStyle(TableStyle([
-        # Label row — small caps label above the fill
-        ("FONTNAME", (0, 0), (-1, 0), FONTS["serif_italic"]),
-        ("FONTSIZE", (0, 0), (-1, 0), 8),
-        ("TEXTCOLOR", (0, 0), (-1, 0), TEXT_SECONDARY),
-        ("ALIGN", (0, 0), (-1, 0), "CENTER"),
-        ("VALIGN", (0, 0), (-1, 0), "BOTTOM"),
-        # Fill row — navy block, Paragraph handles font/color/centering
-        ("BACKGROUND", (0, 1), (-1, 1), rating_fill),
-        ("ALIGN", (0, 1), (-1, 1), "CENTER"),
-        ("VALIGN", (0, 1), (-1, 1), "MIDDLE"),
-        # Layout
-        ("LEFTPADDING", (0, 0), (-1, -1), 0),
-        ("RIGHTPADDING", (0, 0), (-1, -1), 0),
-        ("TOPPADDING", (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, 0), 4),
-        ("BOTTOMPADDING", (0, 1), (-1, 1), 0),
-    ]))
-
-    # ── FH Exposure Score ──
+    rating_color = risk_color(rating)
     fh = assessment.get("feral_hog_exposure_score") or {}
     fh_score = fh.get("score", "N/A")
 
-    # FH score — large navy numeral in the McKinsey "headline figure"
-    # style. The supporting label sits below in italic serif.
-    score_style = ParagraphStyle(
-        "ScoreBig",
-        parent=STYLE_METRIC_LARGE,
-        textColor=BRAND_NAVY,
+    lbl_style = ParagraphStyle(
+        "HdrLabel",
+        fontName=FONTS["serif_italic"], fontSize=8.5, leading=11,
+        textColor=TEXT_SECONDARY, alignment=_TA_L,
     )
-    score_cell = []
-    score_cell.append(Paragraph(
-        f"{fh_score}<font size='14' color='{COLORS['text_secondary']}'>"
-        f" / 100</font>",
-        score_style))
-    score_cell.append(Paragraph("Feral Hog Exposure Score", STYLE_METRIC_LABEL))
+    rating_value = ParagraphStyle(
+        "RatingValue",
+        fontName=FONTS["serif_bold"], fontSize=22, leading=26,
+        textColor=rating_color, alignment=_TA_L,
+    )
+    score_value = ParagraphStyle(
+        "ScoreValue",
+        fontName=FONTS["serif_bold"], fontSize=22, leading=26,
+        textColor=BRAND_NAVY, alignment=_TA_L,
+    )
 
-    # Side-by-side: badge + exposure score
+    left_cell = [
+        Paragraph("Overall Nature-Risk Rating", lbl_style),
+        Spacer(1, 0.02 * inch),
+        Paragraph(rating.title(), rating_value),
+    ]
+    right_cell = [
+        Paragraph("Feral Hog Exposure Score", lbl_style),
+        Spacer(1, 0.02 * inch),
+        Paragraph(
+            f"{fh_score}"
+            f"<font size='13' color='{COLORS['text_secondary']}'>"
+            f"  / 100</font>",
+            score_value),
+    ]
+
     top_row = Table(
-        [[badge, score_cell]],
-        colWidths=[3.0 * inch, 4.0 * inch],
+        [[left_cell, right_cell]],
+        colWidths=[CONTENT_WIDTH * 0.5, CONTENT_WIDTH * 0.5],
     )
     top_row.setStyle(TableStyle([
-        ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
-        ("ALIGN", (0, 0), (0, 0), "LEFT"),
-        ("ALIGN", (1, 0), (1, 0), "CENTER"),
+        ("VALIGN",     (0, 0), (-1, -1), "TOP"),
+        ("LINEABOVE",  (0, 0), (-1, 0), 0.5, BRAND_NAVY),
+        ("LINEBELOW",  (0, -1), (-1, -1), 0.5, BRAND_NAVY),
+        ("LINEAFTER",  (0, 0), (0, 0), 0.3, GRIDLINE),
+        ("TOPPADDING", (0, 0), (-1, -1), 10),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+        ("LEFTPADDING",  (0, 0), (-1, -1), 10),
+        ("RIGHTPADDING", (0, 0), (-1, -1), 10),
     ]))
     elements.append(top_row)
-    elements.append(Spacer(1, 0.28 * inch))
+    elements.append(Spacer(1, 0.14 * inch))
 
     # ── Summary paragraph ──
     summary_text = _generate_summary(assessment)
@@ -109,7 +97,7 @@ def render(assessment: dict) -> list:
             f'<bullet>&bull;</bullet> {finding}', STYLE_BODY))
 
     # ── Summary metrics table ──
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.12 * inch))
     elements.append(Paragraph("Assessment Metrics", STYLE_H2))
 
     n_species = len(assessment.get("species_inventory", []))

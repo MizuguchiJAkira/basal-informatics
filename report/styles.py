@@ -220,8 +220,8 @@ STYLE_SUBTITLE = ParagraphStyle(
 
 STYLE_H1 = ParagraphStyle(
     "H1",
-    fontName=SERIF_DISPLAY, fontSize=26, leading=30,
-    textColor=INK, spaceBefore=0, spaceAfter=8,
+    fontName=SERIF_DISPLAY, fontSize=22, leading=26,
+    textColor=INK, spaceBefore=0, spaceAfter=4,
 )
 
 # Reserved name — used inside the numbered header strip.
@@ -235,35 +235,35 @@ STYLE_H1_BAR = ParagraphStyle(
 
 STYLE_H2 = ParagraphStyle(
     "H2",
-    fontName=SERIF_BOLD, fontSize=15, leading=19,
+    fontName=SERIF_BOLD, fontSize=12, leading=15,
     textColor=INK,
-    spaceBefore=16, spaceAfter=6,
+    spaceBefore=12, spaceAfter=3,
 )
 
 STYLE_H3 = ParagraphStyle(
     "H3",
-    fontName=SANS_BOLD, fontSize=10, leading=14,
+    fontName=SANS_BOLD, fontSize=9.5, leading=12,
     textColor=INK,
-    spaceBefore=10, spaceAfter=3,
+    spaceBefore=8, spaceAfter=2,
 )
 
 STYLE_EYEBROW = ParagraphStyle(
     "Eyebrow",
-    fontName=MONO_REGULAR, fontSize=8.5, leading=11,
+    fontName=SANS_ITALIC, fontSize=8, leading=10,
     textColor=TEXT_SECONDARY, alignment=TA_LEFT,
-    spaceBefore=0, spaceAfter=4,
+    spaceBefore=0, spaceAfter=3,
 )
 
 STYLE_BODY = ParagraphStyle(
     "Body",
-    fontName=SANS_REGULAR, fontSize=10, leading=15,
-    textColor=INK, alignment=TA_JUSTIFY, spaceAfter=7,
+    fontName=SANS_REGULAR, fontSize=9.5, leading=13,
+    textColor=INK, alignment=TA_JUSTIFY, spaceAfter=5,
 )
 
 STYLE_BODY_SMALL = ParagraphStyle(
     "BodySmall",
-    fontName=SANS_REGULAR, fontSize=8.5, leading=12,
-    textColor=TEXT_SECONDARY, alignment=TA_JUSTIFY, spaceAfter=4,
+    fontName=SANS_REGULAR, fontSize=8, leading=11,
+    textColor=TEXT_SECONDARY, alignment=TA_JUSTIFY, spaceAfter=3,
 )
 
 STYLE_CAPTION = ParagraphStyle(
@@ -444,22 +444,22 @@ def section_bar(title: str, width: float):
 
     style = ParagraphStyle(
         "SectionTitle",
-        fontName=SERIF_DISPLAY, fontSize=22, leading=26,
+        fontName=SERIF_DISPLAY, fontSize=18, leading=22,
         textColor=INK, alignment=TA_LEFT,
     )
     p = Paragraph(title, style)
     t = Table(
         [[p], [""]],
         colWidths=[width],
-        rowHeights=[0.4 * inch, 0.02 * inch],
+        rowHeights=[0.30 * inch, 0.02 * inch],
     )
     t.setStyle(TableStyle([
-        ("LINEBELOW",     (0, 1), (-1, 1), 0.6, INK),
+        ("LINEBELOW",     (0, 1), (-1, 1), 0.5, INK),
         ("VALIGN",        (0, 0), (-1, -1), "BOTTOM"),
         ("LEFTPADDING",   (0, 0), (-1, -1), 0),
         ("RIGHTPADDING",  (0, 0), (-1, -1), 0),
         ("TOPPADDING",    (0, 0), (-1, -1), 0),
-        ("BOTTOMPADDING", (0, 0), (-1, -1), 4),
+        ("BOTTOMPADDING", (0, 0), (-1, -1), 2),
     ]))
     return t
 

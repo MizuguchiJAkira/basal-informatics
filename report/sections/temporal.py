@@ -47,7 +47,7 @@ def render(assessment: dict, detections=None) -> list:
     elements = []
 
     elements.append(section_bar("Activity Patterns", CONTENT_WIDTH))
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.12 * inch))
 
     if detections is None:
         elements.append(Paragraph(
@@ -82,7 +82,7 @@ def render(assessment: dict, detections=None) -> list:
             STYLE_CAPTION))
 
     # Generate weekly trend chart
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.12 * inch))
     elements.append(Paragraph("Weekly Activity Trend", STYLE_H2))
 
     trend_path = _make_weekly_trend(species_weekly)

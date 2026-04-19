@@ -35,7 +35,7 @@ def render(assessment: dict, detections=None, cameras_json=None,
     elements = []
 
     elements.append(section_bar("Parcel Overview", CONTENT_WIDTH))
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.12 * inch))
 
     # Generate the map chart
     map_path = _make_parcel_map(

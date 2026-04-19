@@ -14,6 +14,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
 from reportlab.lib import colors
+from reportlab.lib.styles import ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import (
     Image, Paragraph, Spacer, Table, TableStyle,
@@ -36,7 +37,7 @@ def render(assessment: dict) -> list:
 
     elements.append(section_bar("Invasive Species Damage Projection",
                                  CONTENT_WIDTH))
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.12 * inch))
 
     projections = assessment.get("damage_projections", {})
     fh = assessment.get("feral_hog_exposure_score")
@@ -47,48 +48,62 @@ def render(assessment: dict) -> list:
             STYLE_BODY))
         return elements
 
-    # ── Exposure score gauge + headline numbers ──
-    gauge_path = _make_exposure_gauge(fh) if fh else None
-
+    # ── Headline figures — three-up typographic panel ──
+    # GS / McKinsey idiom: a row of three bold-numeral metrics under
+    # small italic labels, separated by thin rules. No gauges, no
+    # arcs, no decorative graphics. Numbers do the work.
     hog_proj = projections.get("feral_hog")
     if hog_proj:
-        # Top section: gauge + headline financials side by side
-        left_content = []
-        if gauge_path:
-            left_content.append(Image(gauge_path,
-                                      width=2.8 * inch,
-                                      height=1.8 * inch))
+        score_val = fh.get("score", "N/A") if fh else "N/A"
+        num_style = ParagraphStyle(
+            "HeadlineNum",
+            fontName=FONTS["serif_bold"], fontSize=26, leading=30,
+            textColor=BRAND_NAVY, alignment=1,
+        )
+        lbl_style = ParagraphStyle(
+            "HeadlineLbl",
+            fontName=FONTS["serif_italic"], fontSize=8.5, leading=11,
+            textColor=TEXT_SECONDARY, alignment=1,
+        )
 
-        right_content = []
-        right_content.append(Paragraph(
-            f"${hog_proj['estimated_annual_loss']:,.0f}",
-            STYLE_METRIC_LARGE))
-        right_content.append(Paragraph(
-            "Estimated Annual Loss", STYLE_METRIC_LABEL))
-        right_content.append(Spacer(1, 0.15 * inch))
-        right_content.append(Paragraph(
-            f"<font size='14'><b>"
-            f"${hog_proj['ten_year_npv']:,.0f}</b></font>"
-            f"<font size='8' color='{COLORS['text_secondary']}'>"
-            f"  10-Year NPV</font>",
-            STYLE_BODY))
-        right_content.append(Spacer(1, 0.05 * inch))
-        right_content.append(Paragraph(
-            f"<font size='8'>Confidence interval "
+        def _cell(number: str, label: str):
+            return [
+                Paragraph(number, num_style),
+                Spacer(1, 0.03 * inch),
+                Paragraph(label, lbl_style),
+            ]
+
+        col_w = CONTENT_WIDTH / 3.0
+        top_row = Table(
+            [[
+                _cell(f"{score_val}", "Feral Hog Exposure Score"),
+                _cell(f"${hog_proj['estimated_annual_loss']:,.0f}",
+                      "Estimated Annual Loss"),
+                _cell(f"${hog_proj['ten_year_npv']:,.0f}",
+                      "10-Year NPV (5% discount)"),
+            ]],
+            colWidths=[col_w, col_w, col_w],
+        )
+        top_row.setStyle(TableStyle([
+            ("VALIGN", (0, 0), (-1, -1), "TOP"),
+            ("TOPPADDING", (0, 0), (-1, -1), 10),
+            ("BOTTOMPADDING", (0, 0), (-1, -1), 10),
+            # Thin vertical rules between the three cells
+            ("LINEAFTER",  (0, 0), (0, 0), 0.4, GRIDLINE),
+            ("LINEAFTER",  (1, 0), (1, 0), 0.4, GRIDLINE),
+            # Top and bottom hairlines
+            ("LINEABOVE",  (0, 0), (-1, 0), 0.5, BRAND_NAVY),
+            ("LINEBELOW",  (0, -1), (-1, -1), 0.5, BRAND_NAVY),
+        ]))
+        elements.append(top_row)
+        elements.append(Spacer(1, 0.06 * inch))
+        elements.append(Paragraph(
+            f"Confidence interval "
             f"(\u00b1{hog_proj['confidence_interval_pct']:.0f}%): "
             f"${hog_proj['confidence_interval_low']:,.0f} \u2013 "
-            f"${hog_proj['confidence_interval_high']:,.0f}</font>",
+            f"${hog_proj['confidence_interval_high']:,.0f}.",
             STYLE_BODY_SMALL))
-
-        top_table = Table(
-            [[left_content, right_content]],
-            colWidths=[3.2 * inch, 3.8 * inch],
-        )
-        top_table.setStyle(TableStyle([
-            ("VALIGN", (0, 0), (-1, -1), "TOP"),
-        ]))
-        elements.append(top_table)
-        elements.append(Spacer(1, 0.2 * inch))
+        elements.append(Spacer(1, 0.15 * inch))
 
     # ── Confidence interval chart ──
     ci_path = _make_ci_chart(projections)

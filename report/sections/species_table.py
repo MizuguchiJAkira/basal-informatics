@@ -24,7 +24,7 @@ def render(assessment: dict) -> list:
     elements = []
 
     elements.append(section_bar("Species Inventory", CONTENT_WIDTH))
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.12 * inch))
 
     inventory = assessment.get("species_inventory", [])
     if not inventory:

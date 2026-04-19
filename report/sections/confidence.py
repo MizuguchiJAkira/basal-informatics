@@ -22,7 +22,7 @@ def render(assessment: dict) -> list:
     elements = []
 
     elements.append(section_bar("Data Confidence", CONTENT_WIDTH))
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.12 * inch))
 
     dc = assessment.get("data_confidence", {})
 
@@ -51,7 +51,7 @@ def render(assessment: dict) -> list:
         ("LINEBELOW", (0, 0), (-1, -2), 0.25, GRIDLINE),
     ]))
     elements.append(ot)
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.12 * inch))
 
     # ── Per-species confidence table ──
     elements.append(Paragraph("Species Confidence Grades", STYLE_H2))
@@ -100,7 +100,7 @@ def render(assessment: dict) -> list:
                 STYLE_FOOTNOTE))
 
     # ── Regional model accuracy ──
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.12 * inch))
     elements.append(Paragraph("Regional Classification Accuracy", STYLE_H2))
 
     rma = dc.get("regional_model_accuracy", {})
@@ -136,7 +136,7 @@ def render(assessment: dict) -> list:
     gaps = dc.get("top_data_gaps", [])
     if gaps:
         gap_block = []
-        gap_block.append(Spacer(1, 0.2 * inch))
+        gap_block.append(Spacer(1, 0.12 * inch))
         gap_block.append(Paragraph("Top Monitoring Gaps", STYLE_H2))
         gap_block.append(Paragraph(
             "Gaps in corridor coverage where additional cameras would "
