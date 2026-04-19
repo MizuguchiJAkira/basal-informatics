@@ -128,9 +128,19 @@ def main() -> None:
     print(f"    county       {info['county']}, {info['state']}")
     print(f"    uses_left    {info['uses_remaining']}")
 
-    step("Build a tiny fake SD-card ZIP")
-    zip_path = Path(tempfile.mkdtemp()) / "smoke.zip"
-    _make_fake_zip(zip_path)
+    # If a real synthetic SD bundle exists (built via
+    # scripts/build_test_sd.py), prefer it — that exercises the ZIP
+    # against real JPEG bytes with real EXIF. Otherwise synthesize a
+    # tiny stub just to satisfy the flow shape.
+    real_fixture = REPO / "tests" / "fixtures" / "sd_card.zip"
+    if real_fixture.exists():
+        step(f"Using real fixture {real_fixture.relative_to(REPO)}")
+        zip_path = real_fixture
+    else:
+        step("Build a tiny fake SD-card ZIP (fixture missing; "
+             "run scripts/build_test_sd.py for a richer bundle)")
+        zip_path = Path(tempfile.mkdtemp()) / "smoke.zip"
+        _make_fake_zip(zip_path)
     size = zip_path.stat().st_size
     print(f"    {zip_path}  {size} bytes")
 

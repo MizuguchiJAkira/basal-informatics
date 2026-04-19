@@ -1,0 +1,5 @@
+# Rebuildable test fixtures. The script and manifest schema live in
+# scripts/build_test_sd.py; ZIPs and their sibling manifests are
+# downloaded on demand, not checked in. See README.md.
+sd_card.zip
+sd_card.manifest.json

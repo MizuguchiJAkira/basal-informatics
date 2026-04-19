@@ -30,6 +30,11 @@ numpy>=1.26
 # Imports in strecker/detect.py and strecker/reid.py are lazy, so the web
 # container works fine without them.
 Pillow>=9.0
+# Dev-only: scripts/build_test_sd.py uses piexif to rewrite EXIF on
+# iNaturalist photos when assembling a synthetic trail-cam SD card.
+# Not imported by the production pipeline — safe to skip in the
+# worker image.
+piexif>=1.1.3
 
 # Object storage (DO Spaces / S3)
 boto3>=1.34
