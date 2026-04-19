@@ -243,6 +243,13 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
             parcel_uploads_bp as _pu_bp,
             property_uploads_bp as _pp_bp,
         )
+        # Tokenized (passwordless) upload flow — share a link to a
+        # landowner, they upload without an account. Register on both
+        # sites so the link works regardless of which host resolves.
+        from web.routes.api.token_uploads import (
+            token_uploads_bp as _tu_bp,
+            upload_tokens_bp as _ut_bp,
+        )
 
         app.register_blueprint(feedback_bp)
         app.register_blueprint(upload_bp)
@@ -255,10 +262,13 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
         app.register_blueprint(reid_api_bp)
         app.register_blueprint(_pu_bp)
         app.register_blueprint(_pp_bp)
+        app.register_blueprint(_tu_bp)
+        app.register_blueprint(_ut_bp)
 
         # Exempt JSON API endpoints from CSRF (they use auth tokens, not cookies)
         for bp in (properties_api_bp, uploads_api_bp, dashboard_api_bp,
-                   share_api_bp, reid_api_bp, _pu_bp, _pp_bp):
+                   share_api_bp, reid_api_bp, _pu_bp, _pp_bp,
+                   _tu_bp, _ut_bp):
             csrf.exempt(bp)
 
     elif site == "basal":
@@ -270,6 +280,9 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
         from web.routes.api.parcel_uploads import (
             parcel_uploads_bp, property_uploads_bp,
         )
+        from web.routes.api.token_uploads import (
+            token_uploads_bp, upload_tokens_bp,
+        )
 
         app.register_blueprint(demo_bp)
         app.register_blueprint(owner_bp)
@@ -278,11 +291,16 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
         app.register_blueprint(parcel_uploads_bp)
         # Hunter-side alias — same handlers, /api/properties/... URL shape
         app.register_blueprint(property_uploads_bp)
+        # Tokenized upload flow
+        app.register_blueprint(token_uploads_bp)
+        app.register_blueprint(upload_tokens_bp)
 
         # Exempt JSON API endpoints from CSRF (auth via session/token, not cookie)
         csrf.exempt(owner_api_bp)
         csrf.exempt(parcel_uploads_bp)
         csrf.exempt(property_uploads_bp)
+        csrf.exempt(token_uploads_bp)
+        csrf.exempt(upload_tokens_bp)
         # Lender routes are server-rendered HTML with CSRF on forms only;
         # the JSON exposure endpoint under /lender/api/ is read-only GET.
 
