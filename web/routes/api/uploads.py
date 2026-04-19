@@ -1,8 +1,10 @@
 """API routes for property-scoped photo uploads.
 
-POST /api/properties/<pid>/uploads  — accept ZIP, stream to Spaces,
-                                       enqueue worker job
-GET  /api/uploads/<id>/status       — poll ProcessingJob status
+POST   /api/properties/<pid>/uploads  — accept ZIP, stream to Spaces,
+                                         enqueue worker job
+GET    /api/uploads/<id>/status       — poll ProcessingJob status
+DELETE /api/uploads/<id>              — remove an Upload row with no
+                                         ProcessingJob attached (cleanup)
 
 The ZIP is processed by strecker.worker on the Droplet; the web container
 never loads PyTorch / SpeciesNet. When the worker finishes, it auto-creates
@@ -165,3 +167,34 @@ def get_upload_status(upload_id):
         "n_species": pj.n_species if pj else None,
         "n_events": pj.n_events if pj else None,
     })
+
+
+@uploads_api_bp.route("/uploads/<int:upload_id>", methods=["DELETE"])
+@login_required
+def delete_upload(upload_id):
+    """Delete an Upload row that has no ProcessingJob attached.
+
+    Intended for cleaning up orphan rows created by fileless POSTs against
+    the pre-37a03f5 route (which inserted status="pending" before validating
+    the request). Refuses if a ProcessingJob exists for the upload — those
+    represent real work and should not be removed through this endpoint.
+    """
+    upload = Upload.query.get(upload_id)
+    if not upload:
+        return jsonify({"error": "Upload not found"}), 404
+
+    prop = Property.query.get(upload.property_id)
+    if not prop or prop.user_id != current_user.id:
+        return jsonify({"error": "Upload not found"}), 404
+
+    pj = ProcessingJob.query.filter_by(upload_id=upload.id).first()
+    if pj is not None:
+        return jsonify({
+            "error": "Upload has an attached ProcessingJob; refusing to delete",
+            "job_id": pj.job_id,
+            "job_status": pj.status,
+        }), 409
+
+    db.session.delete(upload)
+    db.session.commit()
+    return jsonify({"message": "Upload deleted", "id": upload_id}), 200
