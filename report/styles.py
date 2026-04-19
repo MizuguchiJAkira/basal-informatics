@@ -258,6 +258,9 @@ STYLE_BODY = ParagraphStyle(
     "Body",
     fontName=SANS_REGULAR, fontSize=9.5, leading=13,
     textColor=INK, alignment=TA_JUSTIFY, spaceAfter=5,
+    # Prevent a single orphan line bleeding to the next page at the
+    # top and a single widow line left behind at the bottom.
+    allowOrphans=0, allowWidows=0,
 )
 
 STYLE_BODY_SMALL = ParagraphStyle(

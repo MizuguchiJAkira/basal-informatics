@@ -251,8 +251,19 @@ def render(assessment: dict) -> list:
         "requires per-species cutoff literature review.",
         _BODY_TIGHT))
 
-    # ── References (2-column) ──
-    el.append(Spacer(1, 0.10 * inch))
+    return el
+
+
+def render_references(width: float = None) -> list:
+    """Return flowables for the References block, rendered separately
+    from the methodology body so they can be stitched onto the back
+    cover instead of taking their own page.
+    """
+    from reportlab.lib.units import inch as _inch
+    el: list = []
+    if width is None:
+        width = CONTENT_WIDTH
+
     el.append(Paragraph("References", _H2_TIGHT))
 
     refs = [
@@ -310,7 +321,7 @@ def render(assessment: dict) -> list:
         right_col.append(Spacer(1, 0.01 * inch))
 
     gutter = 0.25 * inch
-    col_w = (CONTENT_WIDTH - gutter) / 2
+    col_w = (width - gutter) / 2
     refs_table = Table(
         [[left_col, right_col]],
         colWidths=[col_w, col_w],

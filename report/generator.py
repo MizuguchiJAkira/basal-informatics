@@ -214,7 +214,10 @@ def generate_report(
     story.extend(methodology.render(assessment))
     story.append(PageBreak())
 
-    # Back cover
+    # Back matter — references + sign-off on a single final page.
+    # Break before it so references don't trail onto the methodology
+    # page and leave the sign-off stranded on a half-empty final
+    # page (the previous layout's failure mode).
     story.extend(_back_cover(assessment))
 
     # Build PDF
@@ -224,40 +227,44 @@ def generate_report(
 
 
 def _back_cover(assessment: dict) -> list:
-    """Back cover — contact info and methodology blurb."""
+    """Back page — references above, compact sign-off block below.
+
+    The references list used to live at the end of the methodology
+    section and was spilling onto its own half-empty page. Here it
+    sits above the sign-off block — still the last content in the
+    document, but no longer consuming a dedicated page.
+    """
     from reportlab.platypus import Paragraph
     from report.styles import (
-        STYLE_H1, STYLE_BODY, STYLE_BODY_SMALL, STYLE_SUBTITLE,
+        STYLE_H2, STYLE_BODY, STYLE_BODY_SMALL, STYLE_SUBTITLE,
+        CONTENT_WIDTH,
     )
+    from report.sections.methodology import render_references
 
     elements = []
 
-    elements.append(Spacer(1, 3.0 * inch))
+    # References (2-col) — take the natural top of the back page
+    elements.extend(render_references(width=CONTENT_WIDTH))
 
-    elements.append(Paragraph("Basal Informatics", STYLE_H1))
-    elements.append(Spacer(1, 0.2 * inch))
+    elements.append(Spacer(1, 0.35 * inch))
 
+    # Sign-off block — compact, no 3" spacer
+    elements.append(Paragraph("Basal Informatics", STYLE_H2))
     elements.append(Paragraph(
         "Ground-truth ecological data for nature-risk assessment. "
-        "We deploy scalable camera trap networks across private "
-        "land, process imagery through calibrated AI classifiers, "
-        "and deliver bias-corrected species inventories and damage "
-        "projections to insurers and lenders for TNFD and EU CSRD "
-        "compliance.",
+        "We deploy scalable camera-trap networks across private land, "
+        "process imagery through calibrated classifiers, and deliver "
+        "bias-corrected species inventories and density estimates to "
+        "agricultural lenders and reinsurers for TNFD and EU CSRD "
+        "disclosure.",
         STYLE_BODY))
-
-    elements.append(Spacer(1, 0.3 * inch))
-
+    elements.append(Spacer(1, 0.1 * inch))
     elements.append(Paragraph(
-        "basalinformatics.com", STYLE_SUBTITLE))
-    elements.append(Paragraph(
-        "info@basalinformatics.com", STYLE_BODY_SMALL))
-
-    elements.append(Spacer(1, 0.5 * inch))
-
+        "basal.eco  ·  info@basal.eco", STYLE_BODY_SMALL))
+    elements.append(Spacer(1, 0.18 * inch))
     ver = assessment.get("methodology_version", "1.0.0")
     elements.append(Paragraph(
-        f"Methodology version {ver}  |  "
+        f"Methodology version {ver}  ·  "
         f"Assessment date: {assessment.get('assessment_date', '')}",
         STYLE_BODY_SMALL))
     elements.append(Paragraph(
