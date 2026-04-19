@@ -87,6 +87,22 @@ def upload(property_id):
     return render_template("upload_new.html", property=prop)
 
 
+@properties_bp.route("/<int:property_id>/upload-tokens")
+@login_required
+def upload_tokens(property_id):
+    """Owner-facing page to mint and manage passwordless upload tokens.
+
+    The page is a thin shell around the existing
+    ``/api/properties/<pid>/upload-tokens`` JSON API — the mint form,
+    the table of existing tokens, and the revoke action all call the
+    API via fetch. This keeps token issuance in one place.
+    """
+    prop = Property.query.get(property_id)
+    if not prop or prop.user_id != current_user.id:
+        abort(404)
+    return render_template("upload_tokens.html", property=prop)
+
+
 @properties_bp.route("/<int:property_id>/dashboard")
 @login_required
 def dashboard(property_id):

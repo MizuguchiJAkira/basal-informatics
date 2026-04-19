@@ -1,0 +1,214 @@
+{% extends "base.html" %}
+{% block title %}Upload Tokens - {{ property.name }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto">
+    <!-- Header -->
+    <div class="mb-6">
+        <a href="/properties/{{ property.id }}/upload" class="text-sm text-teal-600 hover:text-teal-700">&larr; Back to upload</a>
+        <h1 class="text-2xl font-bold text-slate-700 dark:text-gray-100 mt-2">Share link with landowner</h1>
+        <p class="text-sm text-slate-500 dark:text-gray-400 mt-1">
+            {{ property.name }} &middot; mint a passwordless upload link so a landowner
+            can submit SD-card photos without creating an account.
+        </p>
+    </div>
+
+    <!-- Mint form -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 mb-6">
+        <h2 class="font-semibold text-slate-700 dark:text-gray-100 mb-4">Mint a new upload link</h2>
+        <form id="mint-form" class="space-y-4">
+            <div>
+                <label class="block text-sm text-slate-600 dark:text-gray-300 mb-1">Label</label>
+                <input type="text" name="label" placeholder="Matagorda pilot - Phil Moore"
+                       class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div>
+                <label class="block text-sm text-slate-600 dark:text-gray-300 mb-1">Recipient email hint (optional)</label>
+                <input type="email" name="email_hint" placeholder="landowner@example.com"
+                       class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
+            </div>
+            <div class="flex gap-4">
+                <div class="flex-1">
+                    <label class="block text-sm text-slate-600 dark:text-gray-300 mb-1">Uses</label>
+                    <input type="number" name="uses" value="10" min="1" max="1000"
+                           class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
+                </div>
+                <div class="flex-1">
+                    <label class="block text-sm text-slate-600 dark:text-gray-300 mb-1">Expires (days)</label>
+                    <input type="number" name="ttl_days" value="90" min="1" max="365"
+                           class="w-full border border-gray-200 dark:border-gray-700 rounded-lg px-3 py-2 text-sm" />
+                </div>
+            </div>
+            <button type="submit"
+                    class="bg-teal-600 hover:bg-teal-700 text-white text-sm font-medium px-4 py-2 rounded-lg transition">
+                Generate share link
+            </button>
+        </form>
+
+        <!-- New-token success area -->
+        <div id="new-token-area" class="hidden mt-6 bg-teal-50 dark:bg-teal-900/20 border border-teal-200 dark:border-teal-800 rounded-lg p-4">
+            <p class="text-sm font-semibold text-teal-700 dark:text-teal-300 mb-2">
+                Share this link with the landowner
+            </p>
+            <div class="flex gap-2">
+                <input id="new-token-url" type="text" readonly
+                       class="flex-1 border border-teal-200 dark:border-teal-800 rounded-lg px-3 py-2 text-xs font-mono" />
+                <button type="button" id="copy-btn"
+                        class="text-sm text-teal-600 hover:text-teal-700 border border-teal-600 rounded-lg px-3 py-2">
+                    Copy
+                </button>
+            </div>
+            <p class="text-xs text-slate-500 dark:text-gray-400 mt-2">
+                Anyone with this URL can upload for {{ property.name }} until the link is revoked or expires.
+            </p>
+        </div>
+
+        <div id="mint-error" class="hidden mt-4 text-sm text-red-600"></div>
+    </div>
+
+    <!-- Existing tokens table -->
+    <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
+        <h2 class="font-semibold text-slate-700 dark:text-gray-100 mb-4">Existing links</h2>
+        <div id="tokens-empty" class="hidden text-sm text-slate-500 dark:text-gray-400">
+            No upload links yet. Mint one above.
+        </div>
+        <div class="overflow-x-auto">
+            <table id="tokens-table" class="hidden min-w-full text-sm">
+                <thead>
+                    <tr class="text-left text-xs uppercase text-slate-500 dark:text-gray-400 border-b border-gray-200 dark:border-gray-700">
+                        <th class="py-2 pr-4">Label</th>
+                        <th class="py-2 pr-4">Recipient</th>
+                        <th class="py-2 pr-4">Uses left</th>
+                        <th class="py-2 pr-4">Expires</th>
+                        <th class="py-2 pr-4">Status</th>
+                        <th class="py-2 pr-4"></th>
+                    </tr>
+                </thead>
+                <tbody id="tokens-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<script>
+(function() {
+    const PROPERTY_ID = {{ property.id }};
+    const API_BASE = '/api/properties/' + PROPERTY_ID + '/upload-tokens';
+
+    function tokenState(t) {
+        if (t.revoked) return {label: 'Revoked', cls: 'text-red-600'};
+        if (t.uses_remaining !== null && t.uses_remaining <= 0)
+            return {label: 'Exhausted', cls: 'text-gray-500'};
+        if (t.expires_at && new Date(t.expires_at) < new Date())
+            return {label: 'Expired', cls: 'text-gray-500'};
+        return {label: 'Active', cls: 'text-teal-600'};
+    }
+
+    function escapeHtml(s) {
+        if (s === null || s === undefined) return '';
+        return String(s).replace(/[&<>"']/g, c => ({
+            '&': '&amp;', '<': '&lt;', '>': '&gt;',
+            '"': '&quot;', "'": '&#39;'
+        }[c]));
+    }
+
+    function fmtDate(iso) {
+        if (!iso) return '—';
+        try { return new Date(iso).toLocaleDateString(); }
+        catch (e) { return iso; }
+    }
+
+    async function loadTokens() {
+        const r = await fetch(API_BASE, {credentials: 'include'});
+        if (!r.ok) return;
+        const data = await r.json();
+        const body = document.getElementById('tokens-body');
+        const table = document.getElementById('tokens-table');
+        const empty = document.getElementById('tokens-empty');
+        body.innerHTML = '';
+        if (!data.tokens || data.tokens.length === 0) {
+            table.classList.add('hidden');
+            empty.classList.remove('hidden');
+            return;
+        }
+        table.classList.remove('hidden');
+        empty.classList.add('hidden');
+        data.tokens.forEach(t => {
+            const st = tokenState(t);
+            const tr = document.createElement('tr');
+            tr.className = 'border-b border-gray-100 dark:border-gray-700';
+            tr.setAttribute('data-token', t.token);
+            tr.innerHTML =
+                '<td class="py-2 pr-4">' + escapeHtml(t.label || '(no label)') + '</td>' +
+                '<td class="py-2 pr-4 text-slate-500 dark:text-gray-400">' + escapeHtml(t.email_hint || '—') + '</td>' +
+                '<td class="py-2 pr-4">' + (t.uses_remaining === null ? '∞' : t.uses_remaining) + '</td>' +
+                '<td class="py-2 pr-4 text-slate-500 dark:text-gray-400">' + fmtDate(t.expires_at) + '</td>' +
+                '<td class="py-2 pr-4 font-medium ' + st.cls + '">' + st.label + '</td>' +
+                '<td class="py-2 pr-4">' +
+                    (t.revoked
+                        ? ''
+                        : '<button data-revoke="' + escapeHtml(t.token) + '" class="text-xs text-red-600 hover:text-red-700 underline">Revoke</button>') +
+                '</td>';
+            body.appendChild(tr);
+        });
+        body.querySelectorAll('[data-revoke]').forEach(btn => {
+            btn.addEventListener('click', () => revoke(btn.getAttribute('data-revoke')));
+        });
+    }
+
+    async function revoke(token) {
+        if (!confirm('Revoke this upload link? The landowner will no longer be able to use it.')) return;
+        const r = await fetch(API_BASE + '/' + encodeURIComponent(token), {
+            method: 'DELETE', credentials: 'include',
+        });
+        if (r.ok) loadTokens();
+    }
+
+    document.getElementById('mint-form').addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const fd = new FormData(e.target);
+        const payload = {
+            label: fd.get('label') || null,
+            email_hint: fd.get('email_hint') || null,
+            uses: parseInt(fd.get('uses'), 10) || 10,
+            ttl_days: parseInt(fd.get('ttl_days'), 10) || 90,
+        };
+        const errEl = document.getElementById('mint-error');
+        errEl.classList.add('hidden');
+        const r = await fetch(API_BASE, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            credentials: 'include',
+            body: JSON.stringify(payload),
+        });
+        if (!r.ok) {
+            const j = await r.json().catch(() => ({}));
+            errEl.textContent = j.error || ('Failed: ' + r.status);
+            errEl.classList.remove('hidden');
+            return;
+        }
+        const j = await r.json();
+        const area = document.getElementById('new-token-area');
+        const url = document.getElementById('new-token-url');
+        url.value = j.share_url;
+        area.classList.remove('hidden');
+        e.target.reset();
+        e.target.querySelector('[name=uses]').value = 10;
+        e.target.querySelector('[name=ttl_days]').value = 90;
+        loadTokens();
+    });
+
+    document.getElementById('copy-btn').addEventListener('click', () => {
+        const url = document.getElementById('new-token-url');
+        url.select();
+        try {
+            navigator.clipboard.writeText(url.value);
+        } catch (e) {
+            document.execCommand('copy');
+        }
+    });
+
+    loadTokens();
+})();
+</script>
+{% endblock %}
