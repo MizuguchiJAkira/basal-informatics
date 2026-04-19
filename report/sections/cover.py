@@ -84,15 +84,26 @@ def render(assessment: dict) -> list:
     elements: list = []
 
     # ── Masthead (logo + wordmark) ────────────────────────────────────
+    # Wordmark matches the website exactly: Fraunces regular, lowercase
+    # "basal", italic forest-lit " / ", regular "informatics" — tight
+    # tracking at -0.02em. No bold.
     _masthead_style = ParagraphStyle(
         "CoverMasthead",
-        fontName=FONTS["serif_bold"], fontSize=15, leading=19,
+        fontName=FONTS["serif_regular"], fontSize=20, leading=24,
         textColor=COVER_TEXT, alignment=TA_LEFT,
+        # ReportLab charSpace is in points; -0.02em on 20pt ≈ -0.4pt
+        charSpace=-0.4,
     )
     _masthead_tag_style = ParagraphStyle(
         "CoverMastheadTag",
         fontName=FONTS["mono_regular"], fontSize=7.5, leading=10,
         textColor=COVER_MUTED, alignment=TA_LEFT,
+    )
+    # Inline-italic slash tinted forest-lit, matching the website
+    # ( <em> colored with --forest-lit ).
+    from report.styles import COLORS as _C
+    wordmark_html = (
+        f'basal<font color="{_C["forest_lit"]}"><i> /</i></font> informatics'
     )
     # Logo sits inside a narrow cell to its left; wordmark + tagline
     # stack in the right cell. Keeps the whole masthead to one row.
@@ -101,7 +112,7 @@ def render(assessment: dict) -> list:
         [[
             logo,
             [
-                Paragraph("Basal Informatics", _masthead_style),
+                Paragraph(wordmark_html, _masthead_style),
                 Paragraph("ECOLOGICAL VERIFICATION", _masthead_tag_style),
             ],
         ]],
