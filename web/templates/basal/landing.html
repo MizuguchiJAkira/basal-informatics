@@ -79,7 +79,7 @@
         </p>
         <div class="b-hero-ctas">
           <a class="b-cta" href="/lender/fcct/">See live parcel<span aria-hidden="true">→</span></a>
-          <a class="b-cta secondary" href="#methodology">Methodology one-pager</a>
+          <a class="b-cta secondary" href="{{ url_for('static', filename='sample/nature_exposure_sample.pdf') }}">Sample report (PDF)</a>
         </div>
       </div>
       {# right column intentionally empty — the video owns this space #}
@@ -268,6 +268,9 @@
           <div>
             <a class="b-cta" href="/lender/fcct/parcel/12">
               Open full report<span aria-hidden="true">→</span>
+            </a>
+            <a class="b-cta secondary" href="{{ url_for('static', filename='sample/nature_exposure_sample.pdf') }}" style="margin-left: 10px;">
+              PDF<span aria-hidden="true">↓</span>
             </a>
             <a class="b-cta secondary" href="/lender/api/fcct/parcel/12/exposure" style="margin-left: 10px;">
               JSON API<span aria-hidden="true">{ }</span>
