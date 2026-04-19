@@ -413,6 +413,32 @@ def _process_job(db, ProcessingJob, job_id: str):
             })
         n_events = sum(s["events"] for s in species_list)
 
+        # ── 6b. Filename-derived accuracy report (opt-in) ──
+        # If the hunter curated their SD card with species words in
+        # filenames (e.g. "CF Pig 2025-05-19 Goldilocks MH.JPG"),
+        # reconcile classifier predictions against those labels and
+        # attach a per-species confusion report to the ProcessingJob
+        # row. Silent no-op when no filenames carry labels.
+        try:
+            from strecker.filename_labels import build_accuracy_report
+            pairs = [
+                (getattr(d, "filename", None) or
+                 getattr(d, "photo_path", None) or "",
+                 d.species_key)
+                for d in detections
+            ]
+            acc = build_accuracy_report(pairs)
+            if acc["n_labeled"] > 0:
+                pj.accuracy_report_json = json.dumps(acc)
+                logger.info(
+                    "Job %s accuracy: %d/%d labeled photos matched "
+                    "(%d missed, %d confused)",
+                    job_id, acc["n_matched"], acc["n_labeled"],
+                    acc["n_missed"], acc["n_confused"])
+        except Exception:
+            logger.exception("Job %s: accuracy report failed (non-fatal)",
+                             job_id)
+
         # ── 7. Commit final state ──
         pj.status = "complete"
         pj.n_photos = f"{len(detections):,}"

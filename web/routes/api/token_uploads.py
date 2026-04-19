@@ -52,9 +52,11 @@ upload_tokens_bp = Blueprint(
 )
 
 
-MAX_UPLOAD_BYTES = 500 * 1024 * 1024
+# Match the authenticated-flow cap. A full-season hunter SD card
+# routinely exceeds 500 MB; 2 GB is the realistic upper bound.
+MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024
 MIN_UPLOAD_BYTES = 100
-PRESIGN_TTL_SECONDS = 900
+PRESIGN_TTL_SECONDS = 1800
 
 
 # ---------------------------------------------------------------------------

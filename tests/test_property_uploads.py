@@ -157,10 +157,11 @@ def test_request_rejects_non_zip(client):
 
 
 def test_request_rejects_oversize(client):
+    """Cap is 2 GB; 3 GB must be rejected."""
     _, c, pid = client
     r = c.post(f"/api/properties/{pid}/uploads/request",
                json={"filename": "huge.zip",
-                     "size_bytes": 900 * 1024 * 1024})
+                     "size_bytes": 3 * 1024 * 1024 * 1024})
     assert r.status_code == 413
 
 

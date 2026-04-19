@@ -59,10 +59,14 @@ property_uploads_bp = Blueprint(
     "property_uploads_api", __name__, url_prefix="/api/properties"
 )
 
-# Keep parity with the Strecker /upload flow's cap.
-MAX_UPLOAD_BYTES = 500 * 1024 * 1024   # 500 MB
-MIN_UPLOAD_BYTES = 100                  # obvious-junk floor
-PRESIGN_TTL_SECONDS = 900              # 15 min to finish the PUT
+# Real hunter SD cards routinely run 1-2 GB across a full season
+# (~4,000-8,000 JPEGs @ 300-500 KB each). The prior 500 MB cap was
+# a sanity floor that rejected a real-world first-upload test ZIP
+# (TNDeer, 1.18 GB, 855 photos). 2 GB covers the realistic upper
+# bound; larger cards should be split by the hunter or by year.
+MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024   # 2 GB
+MIN_UPLOAD_BYTES = 100                        # obvious-junk floor
+PRESIGN_TTL_SECONDS = 1800                    # 30 min for big PUTs
 
 
 def _user_can_upload(parcel: Property) -> bool:

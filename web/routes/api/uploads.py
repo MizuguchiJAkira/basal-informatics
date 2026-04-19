@@ -29,7 +29,7 @@ logger = logging.getLogger(__name__)
 uploads_api_bp = Blueprint("uploads_api", __name__, url_prefix="/api")
 
 # Same cap as the Strecker /upload flow
-MAX_UPLOAD_BYTES = 500 * 1024 * 1024
+MAX_UPLOAD_BYTES = 2 * 1024 * 1024 * 1024   # 2 GB (matches pre-signed flow)
 _IMG_EXTS = (".jpg", ".jpeg", ".png", ".tif", ".tiff", ".bmp", ".webp")
 
 

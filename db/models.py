@@ -398,6 +398,15 @@ class ProcessingJob(db.Model):
     claimed_at = db.Column(db.DateTime)
     demo = db.Column(db.Boolean, default=False)  # demo jobs run inline in web
     species_json = db.Column(db.Text)  # JSON array of species stats
+    # Optional accuracy telemetry when the uploaded ZIP contains
+    # hunter-labeled ground-truth filenames (e.g. "CF Pig 2025-05-19
+    # Goldilocks MH.JPG"). Populated by the worker's
+    # ground-truth-vs-classifier reconciliation pass; NULL when the
+    # hunter hasn't labeled anything. Schema:
+    #   {"n_labeled": 58, "n_matched": 51, "n_missed": 4, "n_confused": 3,
+    #    "per_species": {"feral_hog": {"labeled": 14, "matched": 13,
+    #                                  "confused_as": {"deer": 1}}, ...}}
+    accuracy_report_json = db.Column(db.Text)
     submitted_at = db.Column(db.DateTime, default=datetime.utcnow)
     completed_at = db.Column(db.DateTime)
 
