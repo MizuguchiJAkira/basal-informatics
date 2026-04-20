@@ -7,7 +7,7 @@ Ownership is verified on every request (property.user_id == current_user.id).
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
 
-from db.models import db, Property, Camera
+from db.models import db, Property, Camera, Upload, ProcessingJob
 
 properties_api_bp = Blueprint("properties_api", __name__, url_prefix="/api")
 
@@ -76,16 +76,46 @@ def create_property():
     if not data:
         return jsonify({"error": "JSON body required"}), 400
 
-    name = data.get("name")
+    name = (data.get("name") or "").strip()
     if not name:
         return jsonify({"error": "name is required"}), 400
+    if len(name) > 200:
+        return jsonify({"error": "name must be <= 200 characters"}), 400
+
+    # state is a VARCHAR(2) USPS/ISO code. The UI dropdown already
+    # sends codes, but a direct API caller might send the display label
+    # ("Texas") — catch that explicitly rather than letting Postgres
+    # raise StringDataRightTruncation and 500.
+    state = data.get("state")
+    if state is not None:
+        state = str(state).strip().upper()
+        if state == "":
+            state = None
+        elif len(state) != 2:
+            return jsonify({
+                "error": (f"state must be a 2-letter code (got "
+                          f"{state!r}, {len(state)} chars)")
+            }), 400
+
+    county = data.get("county")
+    if county is not None:
+        county = str(county).strip()
+        if len(county) > 100:
+            return jsonify({"error": "county must be <= 100 characters"}), 400
+
+    acreage = data.get("acreage")
+    if acreage is not None:
+        try:
+            acreage = float(acreage)
+        except (TypeError, ValueError):
+            return jsonify({"error": "acreage must be a number"}), 400
 
     prop = Property(
         user_id=current_user.id,
         name=name,
-        county=data.get("county"),
-        state=data.get("state"),
-        acreage=data.get("acreage"),
+        county=county,
+        state=state,
+        acreage=acreage,
         boundary_geojson=data.get("boundary_geojson"),
     )
     db.session.add(prop)
@@ -135,8 +165,20 @@ def delete_property(property_id):
     if not prop:
         return jsonify({"error": "Property not found"}), 404
 
-    # Delete associated cameras first
-    Camera.query.filter_by(property_id=prop.id).delete()
+    # Cascade: the data graph under a property is
+    # ProcessingJob → Upload → Camera → Property. SQLAlchemy doesn't
+    # cascade automatically across these (the foreign keys are RESTRICT
+    # by default), so delete children in dependency order.
+    upload_ids = [u.id for u in Upload.query.filter_by(property_id=prop.id).all()]
+    if upload_ids:
+        ProcessingJob.query.filter(
+            ProcessingJob.upload_id.in_(upload_ids)
+        ).delete(synchronize_session=False)
+    ProcessingJob.query.filter_by(property_id=prop.id).delete(
+        synchronize_session=False
+    )
+    Upload.query.filter_by(property_id=prop.id).delete(synchronize_session=False)
+    Camera.query.filter_by(property_id=prop.id).delete(synchronize_session=False)
     db.session.delete(prop)
     db.session.commit()
 
@@ -171,12 +213,33 @@ def create_camera(property_id):
     if not data:
         return jsonify({"error": "JSON body required"}), 400
 
+    # Accept lat/lon (canonical) OR latitude/longitude (the spelling
+    # used by most GPS libraries and what a reasonable API caller
+    # will try first). Silently falling through would cause a camera
+    # to save with null coordinates even though the client sent them.
+    lat = data.get("lat", data.get("latitude"))
+    lon = data.get("lon", data.get("longitude"))
+    if lat is not None:
+        try:
+            lat = float(lat)
+        except (TypeError, ValueError):
+            return jsonify({"error": "lat must be a number"}), 400
+        if not -90 <= lat <= 90:
+            return jsonify({"error": "lat must be in [-90, 90]"}), 400
+    if lon is not None:
+        try:
+            lon = float(lon)
+        except (TypeError, ValueError):
+            return jsonify({"error": "lon must be a number"}), 400
+        if not -180 <= lon <= 180:
+            return jsonify({"error": "lon must be in [-180, 180]"}), 400
+
     cam = Camera(
         property_id=prop.id,
         camera_label=data.get("camera_label"),
         name=data.get("name"),
-        lat=data.get("lat"),
-        lon=data.get("lon"),
+        lat=lat,
+        lon=lon,
         placement_context=data.get("placement_context"),
         camera_model=data.get("camera_model"),
     )
@@ -202,6 +265,12 @@ def update_camera(camera_id):
     data = request.get_json()
     if not data:
         return jsonify({"error": "JSON body required"}), 400
+
+    # Canonicalize lat/lon aliases before the generic setattr loop.
+    if "latitude" in data and "lat" not in data:
+        data["lat"] = data.pop("latitude")
+    if "longitude" in data and "lon" not in data:
+        data["lon"] = data.pop("longitude")
 
     for field in (
         "camera_label", "name", "lat", "lon",

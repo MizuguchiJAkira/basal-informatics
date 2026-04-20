@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{{ code }} — Basal Informatics{% endblock %}
+{% block title %}{{ code }} — {{ brand_name }}{% endblock %}
 {% block content %}
 <div class="max-w-2xl mx-auto py-20 px-6 text-center">
   <div class="text-6xl font-serif tracking-tight text-slate-700 dark:text-gray-200 mb-3">
@@ -12,9 +12,15 @@
     {{ body }}
   </p>
   <div class="flex justify-center gap-3 text-sm">
+    {% if is_basal_site %}
     <a href="/lender/" class="px-4 py-2 rounded border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800">
       Lender portfolio
     </a>
+    {% else %}
+    <a href="/properties" class="px-4 py-2 rounded border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800">
+      My properties
+    </a>
+    {% endif %}
     <a href="/" class="px-4 py-2 rounded border border-slate-300 dark:border-gray-600 text-slate-700 dark:text-gray-200 hover:bg-slate-50 dark:hover:bg-gray-800">
       Home
     </a>

@@ -364,25 +364,46 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
     from flask import render_template as _render_template
     import uuid as _uuid
 
+    # Error copy is brand-aware — Basal talks about "parcels" and
+    # "portfolios" to loan-review folks; Strecker talks about
+    # "properties" and "logbooks" to hunters.
     _ERROR_COPY = {
-        404: ("Not found",
-              "The parcel, report, or page you tried to open isn\u2019t in this "
-              "portfolio. The seed data may have been refreshed and the URL is "
-              "stale; head to the portfolio and pick a parcel from the list."),
-        403: ("Access denied",
-              "This view is gated to authorized lender / owner accounts. If "
-              "you reached this from a partner-shared link, sign in with the "
-              "credentials in your invitation email."),
-        500: ("Something broke on our end",
-              "An unexpected error occurred. The team has been notified. "
-              "Try the portfolio link below; the rest of the dashboard should "
-              "be unaffected."),
+        "basal": {
+            404: ("Not found",
+                  "The parcel, report, or page you tried to open isn\u2019t in this "
+                  "portfolio. The seed data may have been refreshed and the URL is "
+                  "stale; head to the portfolio and pick a parcel from the list."),
+            403: ("Access denied",
+                  "This view is gated to authorized lender / owner accounts. If "
+                  "you reached this from a partner-shared link, sign in with the "
+                  "credentials in your invitation email."),
+            500: ("Something broke on our end",
+                  "An unexpected error occurred. The team has been notified. "
+                  "Try the portfolio link below; the rest of the dashboard should "
+                  "be unaffected."),
+        },
+        "strecker": {
+            404: ("Not found",
+                  "The page you\u2019re looking for isn\u2019t here. Maybe the "
+                  "URL is stale \u2014 head back to your properties and pick "
+                  "one from the list."),
+            403: ("Not authorized",
+                  "That property or upload belongs to a different account. "
+                  "Sign in with the account that owns it, or go back to your "
+                  "own properties."),
+            500: ("Something broke on our end",
+                  "We hit an unexpected error. The team has been notified; "
+                  "your photos and data are safe. Try your properties page \u2014 "
+                  "the rest of the app should still work."),
+        },
     }
 
     def _err_handler(code):
         def _h(_e):
-            headline, body = _ERROR_COPY.get(code,
-                ("Unexpected error", "Try the portfolio link below."))
+            s = active_site()
+            headline, body = _ERROR_COPY.get(s, _ERROR_COPY["strecker"]).get(
+                code, ("Unexpected error", "Try the link below.")
+            )
             req_id = _uuid.uuid4().hex[:8]
             return _render_template(
                 "errors/error.html",
