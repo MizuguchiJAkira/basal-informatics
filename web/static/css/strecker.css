@@ -11,37 +11,41 @@
  */
 
 body.strecker {
-  /* Surfaces — warm neutrals, no pure white */
-  --s-bone:    #f1ece3;   /* page base */
-  --s-cream:   #e6dfd1;   /* card, inset */
-  --s-kraft:   #c3ab7d;   /* tan accent */
-  --s-char:    #1c1b18;   /* near-black ink & dark surfaces */
-  --s-char-2:  #2a2823;   /* card on dark */
-  --s-rule:    #cdc4b0;   /* subdued hairline */
+  /* Dark-native palette. Strecker has no light mode. */
+  --s-bg:       #121110;  /* page base — deepest */
+  --s-surface:  #1c1b18;  /* section surface */
+  --s-card:     #26241f;  /* card on surface */
+  --s-card-up:  #302d27;  /* card hover / elevated */
+  --s-rule:     #3a3730;  /* hairline on dark */
+  --s-rule-up:  #4e4a40;
 
-  /* Ink */
-  --s-ink:      #1c1b18;
-  --s-ink-soft: #4a453c;
-  --s-ink-mute: #7a7364;
-  --s-ink-inv:  #f1ece3;  /* on dark */
+  --s-ink:      #f3ede0;  /* primary text — warm bone */
+  --s-ink-soft: #d8cfb9;  /* secondary */
+  --s-ink-mute: #9a9077;  /* tertiary / metadata */
+  --s-kraft:    #d4b87a;  /* warm tan accent, brighter than before */
 
   /* Accents — earthy, restrained */
-  --s-moss:     #3a4a2d;  /* deep pine/olive — primary action */
-  --s-moss-up:  #4a5f3a;
-  --s-clay:     #9b4a24;  /* iron oxide — used as a single accent */
-  --s-brass:    #a07a2a;  /* warm metal — tertiary */
+  --s-moss:     #4e6639;  /* deep pine/olive — primary action */
+  --s-moss-up:  #63814a;
+  --s-clay:     #c0551f;  /* iron oxide — blaze-adjacent accent */
+  --s-clay-up:  #d76329;
+  --s-brass:    #c89a3a;  /* warm metal — tertiary */
 
   /* Type */
   --s-disp: "Oswald", "Archivo Narrow", "Impact", "Helvetica Neue", sans-serif;
   --s-sans: "Inter", -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
   --s-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
 
-  background: var(--s-bone);
+  background: var(--s-bg) !important;
   color: var(--s-ink);
   font-family: var(--s-sans);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
+
+/* Hide the dark-mode toggle on Strecker — there is no light mode. */
+body.strecker #dark-toggle,
+body.strecker button[title="Toggle dark mode"] { display: none !important; }
 
 /* ──────────────────────────────────────────────────────────────
  * Tailwind-class overrides — make the shared chrome (header/
@@ -50,13 +54,13 @@ body.strecker {
  * ────────────────────────────────────────────────────────────── */
 
 body.strecker header {
-  background: var(--s-char) !important;
+  background: #0a0908 !important;
   border-bottom: 1px solid #000 !important;
 }
 body.strecker header a,
 body.strecker header button,
 body.strecker header nav a {
-  color: var(--s-ink-inv) !important;
+  color: var(--s-ink) !important;
   font-family: var(--s-disp);
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -68,11 +72,11 @@ body.strecker header a.text-xl {
   font-weight: 700;
   letter-spacing: 0.14em;
   font-size: 22px;
-  color: var(--s-ink-inv) !important;
+  color: var(--s-ink) !important;
 }
 
 body.strecker footer {
-  background: var(--s-char);
+  background: #0a0908;
   color: var(--s-kraft);
   border-top: none !important;
 }
@@ -109,7 +113,7 @@ body.strecker input[type="tel"],
 body.strecker input[type="date"],
 body.strecker textarea,
 body.strecker select {
-  background: var(--s-cream) !important;
+  background: var(--s-card) !important;
   border: 1px solid var(--s-rule) !important;
   color: var(--s-ink) !important;
   border-radius: 2px;
@@ -148,7 +152,7 @@ body.strecker .s-btn {
   font-size: 14px;
   padding: 14px 26px;
   background: var(--s-moss);
-  color: var(--s-ink-inv) !important;
+  color: #fff !important;
   border: 1px solid var(--s-moss);
   text-decoration: none;
   transition: background 0.15s;

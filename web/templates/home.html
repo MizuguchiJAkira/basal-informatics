@@ -14,11 +14,12 @@
     width: 100%;
     min-height: 78vh;
     background-image:
-      linear-gradient(180deg, rgba(28,27,24,0.15) 0%, rgba(28,27,24,0.55) 60%, rgba(28,27,24,0.82) 100%),
+      linear-gradient(90deg, rgba(10,9,8,0.72) 0%, rgba(10,9,8,0.55) 70%, rgba(10,9,8,0.45) 100%),
+      linear-gradient(180deg, rgba(10,9,8,0.40) 0%, rgba(10,9,8,0.75) 70%, rgba(10,9,8,0.95) 100%),
       url("{{ url_for('static', filename='marketing/journal/plate-01-buck.jpg') }}");
     background-size: cover;
     background-position: center 32%;
-    color: var(--s-ink-inv);
+    color: #fff;
     display: flex;
     align-items: flex-end;
   }
@@ -46,11 +47,12 @@
     font-size: clamp(52px, 10vw, 124px);
     margin: 0 0 14px;
     color: #fff;
-    text-shadow: 0 2px 12px rgba(0,0,0,0.4);
+    text-shadow: 0 2px 20px rgba(0,0,0,0.85), 0 0 40px rgba(0,0,0,0.5);
   }
   .h-hero h1 em {
     font-style: normal;
     color: var(--s-kraft);
+    text-shadow: 0 2px 20px rgba(0,0,0,0.9), 0 0 40px rgba(0,0,0,0.6);
   }
   .h-hero .lede {
     font-family: var(--s-sans);
@@ -67,10 +69,10 @@
     align-items: center;
   }
 
-  /* Dark stat strip under the hero */
+  /* Stat strip under the hero */
   .h-stats {
-    background: var(--s-char);
-    color: var(--s-ink-inv);
+    background: #0a0908;
+    color: var(--s-ink);
     border-top: 3px solid var(--s-clay);
   }
   .h-stats-inner {
@@ -98,15 +100,14 @@
     color: var(--s-kraft);
   }
 
-  /* ── Section scaffolding ──────────────────────────────────── */
-  .h-section { padding: 96px 0; }
-  .h-section--dark {
-    background: var(--s-char);
-    color: var(--s-ink-inv);
+  /* ── Section scaffolding (all sections are dark) ──────────── */
+  .h-section {
+    padding: 96px 0;
+    background: var(--s-bg);
+    color: var(--s-ink);
   }
-  .h-section--dark .h-section-title { color: #fff; }
-  .h-section--dark .h-section-kicker { color: var(--s-kraft); }
-  .h-section--dark .h-prose { color: rgba(255,255,255,0.88); }
+  .h-section--surface { background: var(--s-surface); }
+  .h-section--surface .h-section-kicker { color: var(--s-kraft); }
 
   .h-section-kicker {
     font-family: var(--s-disp);
@@ -125,6 +126,7 @@
     font-size: clamp(36px, 5vw, 64px);
     margin: 0 0 28px;
     max-width: 22ch;
+    color: var(--s-ink);
   }
   .h-prose {
     font-size: 18px;
@@ -141,7 +143,7 @@
     margin-top: 48px;
   }
   .h-step {
-    border-top: 2px solid var(--s-ink);
+    border-top: 2px solid var(--s-kraft);
     padding-top: 22px;
   }
   .h-step-num {
@@ -159,7 +161,7 @@
     letter-spacing: 0.02em;
     font-size: 22px;
     margin: 0 0 10px;
-    color: var(--s-ink);
+    color: #fff;
   }
   .h-step p {
     font-size: 15.5px;
@@ -176,10 +178,11 @@
     margin-top: 48px;
   }
   .h-card {
-    background: var(--s-char-2);
-    color: var(--s-ink-inv);
+    background: var(--s-card);
+    color: var(--s-ink);
     position: relative;
     overflow: hidden;
+    border: 1px solid var(--s-rule);
   }
   .h-card-img {
     aspect-ratio: 4/3;
@@ -191,40 +194,45 @@
   .h-card .sci {
     font-family: var(--s-sans);
     font-style: italic;
-    font-size: 13px;
-    letter-spacing: 0.02em;
+    font-size: 14px;
+    letter-spacing: 0.01em;
     color: var(--s-kraft);
-    margin-bottom: 4px;
+    margin-bottom: 6px;
   }
   .h-card h3 {
     font-family: var(--s-disp);
     font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    font-size: 22px;
-    margin: 0 0 12px;
+    letter-spacing: 0.03em;
+    font-size: 24px;
+    margin: 0 0 16px;
     color: #fff;
   }
   .h-card dl {
     display: grid;
-    grid-template-columns: auto 1fr;
-    gap: 6px 14px;
-    font-size: 13px;
+    grid-template-columns: 90px 1fr;
+    gap: 10px 16px;
+    font-size: 14px;
     margin: 0;
+    padding-top: 14px;
+    border-top: 1px solid var(--s-rule);
   }
   .h-card dt {
     font-family: var(--s-disp);
     text-transform: uppercase;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.14em;
     color: var(--s-kraft);
-    font-size: 11px;
+    font-size: 12px;
+    font-weight: 500;
     align-self: center;
   }
   .h-card dd {
-    font-family: var(--s-mono);
+    font-family: var(--s-sans);
     color: #fff;
     margin: 0;
-    font-size: 13px;
+    font-size: 14.5px;
+    font-weight: 500;
+    align-self: center;
   }
 
   /* ── Quote / testimonial-ish ──────────────────────────────── */
@@ -237,7 +245,7 @@
     line-height: 1.4;
     font-weight: 500;
     max-width: 34em;
-    color: var(--s-ink);
+    color: #fff;
   }
   .h-pullquote cite {
     display: block;
@@ -254,11 +262,11 @@
   .h-cta {
     position: relative;
     background-image:
-      linear-gradient(90deg, rgba(28,27,24,0.88) 0%, rgba(28,27,24,0.62) 60%, rgba(28,27,24,0.35) 100%),
+      linear-gradient(90deg, rgba(10,9,8,0.95) 0%, rgba(10,9,8,0.80) 50%, rgba(10,9,8,0.55) 100%),
       url("{{ url_for('static', filename='marketing/journal/plate-03-bear.jpg') }}");
     background-size: cover;
     background-position: center;
-    color: var(--s-ink-inv);
+    color: var(--s-ink);
     padding: 120px 0;
   }
   .h-cta-inner {
@@ -276,13 +284,15 @@
     max-width: 16ch;
     color: #fff;
     margin: 0 0 18px;
+    text-shadow: 0 2px 18px rgba(0,0,0,0.8);
   }
   .h-cta p {
     font-size: 18px;
     line-height: 1.5;
     max-width: 44ch;
-    color: rgba(255,255,255,0.9);
+    color: #f3ede0;
     margin: 0 0 28px;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.7);
   }
 
   /* ── Responsive ───────────────────────────────────────────── */
@@ -313,7 +323,7 @@
       </p>
       <div class="h-hero-cta">
         <a href="/properties" class="s-btn s-btn--blaze">Open your logbook</a>
-        <a href="/properties/new" class="s-btn s-btn--ghost" style="color:#fff !important; border-color:rgba(255,255,255,0.7);">
+        <a href="/properties/new" class="s-btn s-btn--ghost" style="color:#fff !important; border-color:rgba(255,255,255,0.8); background: rgba(0,0,0,0.35);">
           Register a property
         </a>
       </div>
@@ -386,7 +396,7 @@
   </section>
 
   <!-- ─── What the logbook looks like (gallery) ─── -->
-  <section class="h-section h-section--dark">
+  <section class="h-section h-section--surface">
     <div class="h-inner">
       <div class="h-section-kicker">A page from last season</div>
       <h2 class="h-section-title">Straight read. Nothing dressed up.</h2>
@@ -461,7 +471,7 @@
       </p>
       <div class="h-hero-cta">
         <a href="/properties/new" class="s-btn s-btn--blaze">Register a property</a>
-        <a href="/properties" class="s-btn s-btn--ghost" style="color:#fff !important; border-color:rgba(255,255,255,0.7);">
+        <a href="/properties" class="s-btn s-btn--ghost" style="color:#fff !important; border-color:rgba(255,255,255,0.8); background: rgba(0,0,0,0.35);">
           Open the logbook
         </a>
       </div>
