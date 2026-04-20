@@ -441,3 +441,71 @@ body.strecker .s-tracer {
   0%, 100% { opacity: 0.5; }
   50%      { opacity: 1;   }
 }
+
+/* ────────────────────────────────────────────────────────────────
+ * Detection ticker — scrolls under the nav on every page
+ *
+ * Reads as a live-sensor feed from the camera network. Pure CSS,
+ * no JS, set of entries duplicated so the loop is seamless.
+ * ──────────────────────────────────────────────────────────────── */
+
+body.strecker .s-ticker {
+  position: relative;
+  background: #05080a;
+  border-bottom: 1px solid var(--s-rule-strong);
+  overflow: hidden;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  z-index: 40;
+}
+body.strecker .s-ticker-label {
+  flex: 0 0 auto;
+  padding: 0 16px;
+  font-family: var(--s-mono);
+  font-size: 11px;
+  letter-spacing: 0.12em;
+  color: var(--s-ir);
+  background: #0a1211;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  border-right: 1px solid var(--s-rule-strong);
+  text-shadow: 0 0 8px rgba(118,200,138,0.45);
+}
+body.strecker .s-ticker-track {
+  flex: 1;
+  overflow: hidden;
+  position: relative;
+  height: 100%;
+  mask-image: linear-gradient(to right,
+    transparent, #000 40px, #000 calc(100% - 80px), transparent);
+  -webkit-mask-image: linear-gradient(to right,
+    transparent, #000 40px, #000 calc(100% - 80px), transparent);
+}
+body.strecker .s-ticker-run {
+  display: flex;
+  align-items: center;
+  gap: 48px;
+  height: 100%;
+  white-space: nowrap;
+  animation: s-ticker-scroll 70s linear infinite;
+  font-family: var(--s-mono);
+  font-size: 11px;
+  color: var(--s-canvas-dim);
+  letter-spacing: 0.1em;
+  padding-left: 40px;
+}
+body.strecker .s-ticker-run span { flex: 0 0 auto; }
+body.strecker .s-ticker-run b {
+  color: var(--s-blaze);
+  font-weight: 700;
+  margin-right: 6px;
+}
+@keyframes s-ticker-scroll {
+  0%   { transform: translateX(0); }
+  100% { transform: translateX(-50%); }
+}
+
+/* Give the hero reel container its own sizing under strecker */
+body.strecker .hero-video { background: var(--s-ink); }

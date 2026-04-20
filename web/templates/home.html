@@ -30,24 +30,123 @@
         object-position: center 60%;
         filter: brightness(0.5);
     }
-    /* Still-image Ken Burns alternative — used when src is an <img>
-       instead of a <video>. Different visual vocabulary from Basal
-       (which uses a looping elk clip) — here it's a real trail-cam
-       photograph with a slow subtle zoom + color grade. */
-    .hero-video img {
-        position: absolute;
-        inset: 0;
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        object-position: center 55%;
-        filter: brightness(0.62) contrast(1.08) saturate(0.88);
-        animation: strecker-kenburns 26s ease-in-out infinite alternate;
+    /* Live trail-cam reel. Six real TNDeer photos (buck, hog, bear,
+       coyote, turkey, 8-pt) crossfade in a 6-frame loop. Each frame
+       carries its own camera-station + timestamp HUD overlay, so the
+       hero reads like a live network of six cameras posting trigger
+       events rather than a stock video. */
+    .hero-reel { position: absolute; inset: 0; overflow: hidden; }
+    .hero-reel .frame {
+        position: absolute; inset: 0;
+        opacity: 0;
+        animation: strecker-reel 36s infinite;
+        animation-fill-mode: both;
+    }
+    .hero-reel .frame img {
+        position: absolute; inset: 0;
+        width: 100%; height: 100%;
+        object-fit: cover; object-position: center 55%;
+        filter: brightness(0.6) contrast(1.08) saturate(0.85);
+        animation: strecker-kenburns 14s ease-in-out infinite alternate;
         transform-origin: 52% 58%;
+    }
+    .hero-reel .frame:nth-child(1) { animation-delay:  0s; }
+    .hero-reel .frame:nth-child(2) { animation-delay:  6s; }
+    .hero-reel .frame:nth-child(3) { animation-delay: 12s; }
+    .hero-reel .frame:nth-child(4) { animation-delay: 18s; }
+    .hero-reel .frame:nth-child(5) { animation-delay: 24s; }
+    .hero-reel .frame:nth-child(6) { animation-delay: 30s; }
+
+    @keyframes strecker-reel {
+        0%,1%    { opacity: 0; transform: scale(1.02); }
+        3%,15%   { opacity: 1; transform: scale(1.00); }
+        17%,100% { opacity: 0; transform: scale(1.00); }
     }
     @keyframes strecker-kenburns {
         0%   { transform: scale(1.00); }
-        100% { transform: scale(1.08); }
+        100% { transform: scale(1.09); }
+    }
+
+    /* Per-frame HUD tag — visible only while its frame is active */
+    .hero-reel .frame-hud {
+        position: absolute;
+        left: 22px; bottom: 22px;
+        z-index: 6;
+        font-family: 'Share Tech Mono', monospace;
+        font-size: 12px;
+        letter-spacing: 1.5px;
+        color: rgba(118,200,138,0.92);
+        text-shadow: 0 0 10px rgba(40,120,60,0.5);
+        background: rgba(13,20,16,0.55);
+        border: 1px solid rgba(118,200,138,0.4);
+        padding: 6px 10px;
+        border-radius: 2px;
+    }
+    .hero-reel .frame-hud .sp {
+        color: #e0652a;
+        font-weight: 700;
+        margin-right: 8px;
+        text-transform: uppercase;
+    }
+
+    /* IR scan line — sweeps top to bottom every 8 seconds. Makes
+       the hero feel like a live sensor output instead of a static
+       image. */
+    .hero-scanline {
+        position: absolute;
+        left: 0; right: 0;
+        height: 2px;
+        background: linear-gradient(to right,
+            transparent, rgba(118,200,138,0.7) 50%, transparent);
+        box-shadow: 0 0 12px rgba(118,200,138,0.45);
+        z-index: 5;
+        pointer-events: none;
+        animation: strecker-scan 8s linear infinite;
+        opacity: 0.7;
+    }
+    @keyframes strecker-scan {
+        0%   { top: -3%;  opacity: 0; }
+        5%   { opacity: 0.7; }
+        95%  { opacity: 0.7; }
+        100% { top: 103%; opacity: 0; }
+    }
+
+    /* IR vignette — circular dark falloff + subtle noise. Reads as
+       trail-cam sensor bloom. */
+    .hero-vignette {
+        position: absolute;
+        inset: 0;
+        z-index: 4;
+        pointer-events: none;
+        background:
+            radial-gradient(ellipse at center,
+                transparent 35%,
+                rgba(13,20,16,0.4) 80%,
+                rgba(13,20,16,0.85) 100%);
+    }
+
+    /* Crosshair reticule — faint, bottom-right corner of the hero */
+    .hero-reticle {
+        position: absolute;
+        right: 28px; top: 28px;
+        width: 28px; height: 28px;
+        border: 1px solid rgba(118,200,138,0.45);
+        border-radius: 50%;
+        z-index: 6;
+        pointer-events: none;
+    }
+    .hero-reticle::before, .hero-reticle::after {
+        content: "";
+        position: absolute;
+        background: rgba(118,200,138,0.45);
+    }
+    .hero-reticle::before {
+        left: 50%; top: -6px; bottom: -6px; width: 1px;
+        transform: translateX(-50%);
+    }
+    .hero-reticle::after {
+        top: 50%; left: -6px; right: -6px; height: 1px;
+        transform: translateY(-50%);
     }
 
     /* Bottom fade into page content */
@@ -108,19 +207,53 @@
     }
 </style>
 
-<!-- Trail Cam Hero — real TNDeer buck still with CSS Ken Burns zoom.
-     Deliberately NOT the same video asset basal.eco uses. Static
-     image means faster load, no autoplay friction on mobile, and
-     the motion is carried by CSS animation on the <img> (see
-     .hero-video img + @keyframes strecker-kenburns above). -->
+<!-- Live trail-cam reel — six real TNDeer photos cycling with
+     per-frame camera-station metadata. Motion everywhere: scan line,
+     vignette, Ken Burns zoom per frame, crossfade between frames.
+     Deliberately a network-of-cameras aesthetic, nothing like basal's
+     single ambient video. -->
 <section class="hero-video" id="hero-video">
-    <img src="{{ url_for('static', filename='marketing/strecker-hero.jpg') }}"
-         alt="Whitetail buck, Cumberland Plateau trail cam, 2025 deployment" />
+    <div class="hero-reel">
+        <div class="frame">
+            <img src="{{ url_for('static', filename='marketing/strecker-reel/01-buck.jpg') }}"
+                 alt="10-point whitetail buck on Crooked Well feeder" />
+            <div class="frame-hud"><span class="sp">WHITETAIL</span>CAM-CW-02 · FEEDER · 2025-08-31 · 04:17:22</div>
+        </div>
+        <div class="frame">
+            <img src="{{ url_for('static', filename='marketing/strecker-reel/02-hog.jpg') }}"
+                 alt="Feral hog boar, Goldilocks crossing" />
+            <div class="frame-hud"><span class="sp">FERAL HOG</span>CAM-MH-01 · TRAIL · 2025-06-24 · 01:38:04</div>
+        </div>
+        <div class="frame">
+            <img src="{{ url_for('static', filename='marketing/strecker-reel/03-bear.jpg') }}"
+                 alt="Black bear crossing ridge" />
+            <div class="frame-hud"><span class="sp">BLACK BEAR</span>CAM-CW-04 · RIDGE · 2025-10-17 · 22:51:08</div>
+        </div>
+        <div class="frame">
+            <img src="{{ url_for('static', filename='marketing/strecker-reel/04-coyote.jpg') }}"
+                 alt="Black-phase coyote" />
+            <div class="frame-hud"><span class="sp">COYOTE</span>CAM-BS-03 · RANDOM · 2025-01-29 · 23:04:47</div>
+        </div>
+        <div class="frame">
+            <img src="{{ url_for('static', filename='marketing/strecker-reel/05-turkey.jpg') }}"
+                 alt="Longbeard gobbler" />
+            <div class="frame-hud"><span class="sp">WILD TURKEY</span>CAM-CW-01 · FOOD PLOT · 2025-04-25 · 07:42:11</div>
+        </div>
+        <div class="frame">
+            <img src="{{ url_for('static', filename='marketing/strecker-reel/06-8pt.jpg') }}"
+                 alt="8-point whitetail at dawn" />
+            <div class="frame-hud"><span class="sp">WHITETAIL</span>CAM-CW-05 · WATER · 2025-07-09 · 03:25:37</div>
+        </div>
+    </div>
 
-    <!-- Trail cam HUD (top bar) -->
+    <div class="hero-vignette"></div>
+    <div class="hero-scanline"></div>
+    <div class="hero-reticle"></div>
+
+    <!-- Top HUD: live clock + coords + REC -->
     <div class="hero-cam-hud">
-        <span>CAM-F01 &nbsp; SOUTH FEEDER</span>
-        <span class="hud-rec"><span class="hud-dot"></span> REC</span>
+        <span>34.8422°N · 85.1193°W · TENN. PLATEAU</span>
+        <span class="hud-rec"><span class="hud-dot"></span> LIVE</span>
         <span id="hud-ts"></span>
     </div>
 

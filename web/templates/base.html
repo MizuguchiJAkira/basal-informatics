@@ -155,6 +155,40 @@
             </div>
         </div>
     </header>
+
+    {# Strecker-only: live detection ticker under the nav. Loops a
+       set of recent-style trigger events across the screen, reads
+       as a field-sensor feed. Pure CSS animation, zero JS cost. #}
+    {% if not is_basal_site %}
+    <div class="s-ticker">
+      <div class="s-ticker-label">◉ LIVE FEED</div>
+      <div class="s-ticker-track">
+        <div class="s-ticker-run">
+          <span><b>WHITETAIL</b> · CAM-CW-02 · FEEDER · 04:17</span>
+          <span><b>FERAL HOG</b> · CAM-MH-01 · TRAIL · 01:38</span>
+          <span><b>COYOTE</b> · CAM-BS-03 · RANDOM · 23:04</span>
+          <span><b>BLACK BEAR</b> · CAM-CW-04 · RIDGE · 22:51</span>
+          <span><b>WILD TURKEY</b> · CAM-CW-01 · FOOD PLOT · 07:42</span>
+          <span><b>AXIS DEER</b> · CAM-SS-02 · WATER · 19:08</span>
+          <span><b>WHITETAIL</b> · CAM-CW-05 · WATER · 03:25</span>
+          <span><b>RACCOON</b> · CAM-FS-04 · FEEDER · 02:14</span>
+          <span><b>BOBCAT</b> · CAM-TS-01 · TRAIL · 05:47</span>
+          <span><b>GRAY FOX</b> · CAM-WTH · RIDGE · 00:52</span>
+          <span><b>WHITETAIL</b> · CAM-CW-02 · FEEDER · 04:17</span>
+          <span><b>FERAL HOG</b> · CAM-MH-01 · TRAIL · 01:38</span>
+          <span><b>COYOTE</b> · CAM-BS-03 · RANDOM · 23:04</span>
+          <span><b>BLACK BEAR</b> · CAM-CW-04 · RIDGE · 22:51</span>
+          <span><b>WILD TURKEY</b> · CAM-CW-01 · FOOD PLOT · 07:42</span>
+          <span><b>AXIS DEER</b> · CAM-SS-02 · WATER · 19:08</span>
+          <span><b>WHITETAIL</b> · CAM-CW-05 · WATER · 03:25</span>
+          <span><b>RACCOON</b> · CAM-FS-04 · FEEDER · 02:14</span>
+          <span><b>BOBCAT</b> · CAM-TS-01 · TRAIL · 05:47</span>
+          <span><b>GRAY FOX</b> · CAM-WTH · RIDGE · 00:52</span>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+
     {% endif %}
 
     <!-- Content -->
