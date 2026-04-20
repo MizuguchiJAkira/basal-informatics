@@ -22,7 +22,7 @@ services:
         value: "0"
       - key: DEMO_MODE
         scope: RUN_TIME
-        value: "1"
+        value: "0"
     health_check:
       http_path: /health
       initial_delay_seconds: 10

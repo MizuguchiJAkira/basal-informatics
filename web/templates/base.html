@@ -4,6 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}{{ brand_name }}{% endblock %}</title>
+    {% if is_basal_site %}
+    <meta name="description" content="Primary-source biodiversity verification for lenders, reinsurers, and TNFD disclosure. Parcel-level species inventories with methodology-backed confidence intervals.">
+    <meta property="og:title" content="Basal Informatics — Nature exposure, verified at the parcel.">
+    <meta property="og:description" content="Trail-cam ingest → density estimates with 95% CI, tier classification, and a reinsurer-grade audit trail. Farm Credit pilot live.">
+    <meta property="og:image" content="{{ url_for('static', filename='marketing/basal-mark.svg', _external=True) }}">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    {% else %}
+    <meta name="description" content="A trail-cam logbook for hunters and landowners. Pull the card, drop the photos in — Strecker sorts every frame by species, station, and hour. Free while in beta.">
+    <meta property="og:title" content="Strecker — Know what walks your land.">
+    <meta property="og:description" content="Pull the card. Drop the photos in. Every frame sorted by species, station, and hour. A logbook you'll actually open.">
+    <meta property="og:image" content="{{ url_for('static', filename='marketing/journal/plate-01-buck.jpg', _external=True) }}">
+    <meta property="og:type" content="website">
+    <meta name="twitter:card" content="summary_large_image">
+    {% endif %}
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     {% if is_basal_site %}

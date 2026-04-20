@@ -322,10 +322,17 @@
         showing up.
       </p>
       <div class="h-hero-cta">
+        {% if current_user.is_authenticated %}
         <a href="/properties" class="s-btn s-btn--blaze">Open your logbook</a>
         <a href="/properties/new" class="s-btn s-btn--ghost" style="color:#fff !important; border-color:rgba(255,255,255,0.8); background: rgba(0,0,0,0.35);">
           Register a property
         </a>
+        {% else %}
+        <a href="{{ url_for('auth.register') }}" class="s-btn s-btn--blaze">Create an account — it's free</a>
+        <a href="{{ url_for('auth.login') }}" class="s-btn s-btn--ghost" style="color:#fff !important; border-color:rgba(255,255,255,0.8); background: rgba(0,0,0,0.35);">
+          Sign in
+        </a>
+        {% endif %}
       </div>
     </div>
   </section>
@@ -470,10 +477,17 @@
         stay yours. Log a property in about two minutes.
       </p>
       <div class="h-hero-cta">
+        {% if current_user.is_authenticated %}
         <a href="/properties/new" class="s-btn s-btn--blaze">Register a property</a>
         <a href="/properties" class="s-btn s-btn--ghost" style="color:#fff !important; border-color:rgba(255,255,255,0.8); background: rgba(0,0,0,0.35);">
           Open the logbook
         </a>
+        {% else %}
+        <a href="{{ url_for('auth.register') }}" class="s-btn s-btn--blaze">Create an account</a>
+        <a href="{{ url_for('auth.login') }}" class="s-btn s-btn--ghost" style="color:#fff !important; border-color:rgba(255,255,255,0.8); background: rgba(0,0,0,0.35);">
+          Sign in
+        </a>
+        {% endif %}
       </div>
     </div>
   </section>
