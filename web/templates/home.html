@@ -30,6 +30,25 @@
         object-position: center 60%;
         filter: brightness(0.5);
     }
+    /* Still-image Ken Burns alternative — used when src is an <img>
+       instead of a <video>. Different visual vocabulary from Basal
+       (which uses a looping elk clip) — here it's a real trail-cam
+       photograph with a slow subtle zoom + color grade. */
+    .hero-video img {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center 55%;
+        filter: brightness(0.62) contrast(1.08) saturate(0.88);
+        animation: strecker-kenburns 26s ease-in-out infinite alternate;
+        transform-origin: 52% 58%;
+    }
+    @keyframes strecker-kenburns {
+        0%   { transform: scale(1.00); }
+        100% { transform: scale(1.08); }
+    }
 
     /* Bottom fade into page content */
     .hero-fade {
@@ -89,12 +108,14 @@
     }
 </style>
 
-<!-- Trail Cam Hero Video -->
+<!-- Trail Cam Hero — real TNDeer buck still with CSS Ken Burns zoom.
+     Deliberately NOT the same video asset basal.eco uses. Static
+     image means faster load, no autoplay friction on mobile, and
+     the motion is carried by CSS animation on the <img> (see
+     .hero-video img + @keyframes strecker-kenburns above). -->
 <section class="hero-video" id="hero-video">
-    <video autoplay muted loop playsinline preload="auto"
-           poster="{{ url_for('static', filename='marketing/hero-poster.jpg') }}"
-           src="{{ url_for('static', filename='hero-trailcam.webm') }}">
-    </video>
+    <img src="{{ url_for('static', filename='marketing/strecker-hero.jpg') }}"
+         alt="Whitetail buck, Cumberland Plateau trail cam, 2025 deployment" />
 
     <!-- Trail cam HUD (top bar) -->
     <div class="hero-cam-hud">
