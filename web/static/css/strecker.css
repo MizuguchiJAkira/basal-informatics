@@ -140,8 +140,109 @@ body.strecker h1, body.strecker h2, body.strecker h3 {
   color: var(--s-ink);
 }
 
-body.strecker a { color: var(--s-moss); text-decoration: underline; text-underline-offset: 3px; }
-body.strecker a:hover { color: var(--s-clay); }
+body.strecker a { color: var(--s-kraft); text-decoration: underline; text-underline-offset: 3px; }
+body.strecker a:hover { color: var(--s-clay-up); }
+
+/* Anchors that are skinned as buttons (have a background utility) should
+   not get the plain-link underline treatment. */
+body.strecker a[class*="bg-teal"],
+body.strecker a[class*="bg-gray"],
+body.strecker a[class*="border-teal"],
+body.strecker a.s-btn,
+body.strecker button { text-decoration: none; }
+
+/* ──────────────────────────────────────────────────────────────
+ * Tailwind utility re-skins — map teal-branded pieces from the
+ * dashboard / shared templates into the Strecker warm palette.
+ * ────────────────────────────────────────────────────────────── */
+
+/* Teal → moss (primary action) */
+body.strecker .bg-teal-600 { background-color: var(--s-moss) !important; }
+body.strecker .bg-teal-700,
+body.strecker .hover\:bg-teal-700:hover { background-color: var(--s-moss-up) !important; }
+body.strecker .border-teal-600,
+body.strecker .border-teal-500 { border-color: var(--s-kraft) !important; }
+body.strecker .text-teal-600,
+body.strecker .text-teal-400,
+body.strecker .hover\:text-teal-600:hover,
+body.strecker .hover\:text-teal-700:hover { color: var(--s-kraft) !important; }
+body.strecker .focus\:ring-teal-500:focus { --tw-ring-color: var(--s-kraft) !important; }
+body.strecker .hover\:bg-teal-50:hover,
+body.strecker .dark\:hover\:bg-gray-700:hover { background-color: var(--s-card-up) !important; }
+
+/* Ensure any element with a teal background text reads white */
+body.strecker .bg-teal-600, body.strecker .bg-teal-700 { color: #fff !important; }
+body.strecker .bg-teal-600 *, body.strecker .bg-teal-700 * { color: #fff !important; }
+
+/* Card/surface defaults */
+body.strecker .bg-white { background-color: var(--s-surface) !important; }
+body.strecker .dark\:bg-gray-800 { background-color: var(--s-card) !important; }
+body.strecker .dark\:bg-gray-900 { background-color: var(--s-bg) !important; }
+body.strecker .border-gray-200,
+body.strecker .dark\:border-gray-700 { border-color: var(--s-rule) !important; }
+body.strecker .bg-gray-100,
+body.strecker .dark\:bg-gray-700 { background-color: var(--s-card) !important; }
+
+/* Text utilities remap to warm ink tones */
+body.strecker .text-slate-700,
+body.strecker .text-gray-900,
+body.strecker .dark\:text-gray-100,
+body.strecker .dark\:text-white { color: var(--s-ink) !important; }
+body.strecker .text-slate-500,
+body.strecker .text-gray-500,
+body.strecker .text-gray-600,
+body.strecker .text-slate-600,
+body.strecker .dark\:text-gray-300,
+body.strecker .dark\:text-gray-400 { color: var(--s-ink-soft) !important; }
+body.strecker .text-slate-400,
+body.strecker .text-gray-400 { color: var(--s-ink-mute) !important; }
+
+/* Dashboard page H1 / property name — make it match the hero voice */
+body.strecker h1.text-2xl {
+  font-family: var(--s-disp);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.01em;
+  font-size: 34px !important;
+  line-height: 1.02;
+  color: #fff !important;
+}
+
+/* Tighten Tailwind's bubbly rounded corners for a less SaaS feel */
+body.strecker .rounded-xl { border-radius: 4px !important; }
+body.strecker .rounded-lg { border-radius: 3px !important; }
+
+/* Dashboard primary-action buttons — moss, uppercase, sporting */
+body.strecker .bg-teal-600 {
+  font-family: var(--s-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600 !important;
+}
+
+/* Outlined "My Deer" / secondary actions */
+body.strecker .border-teal-600,
+body.strecker .border-teal-500 {
+  font-family: var(--s-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-weight: 600 !important;
+  border-width: 1px !important;
+}
+
+/* Season select etc. */
+body.strecker select {
+  font-family: var(--s-disp);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 500;
+  font-size: 13px;
+}
+
+/* Legible badges in species cards */
+body.strecker .pattern-nocturnal { background: #1c1b18 !important; color: var(--s-kraft) !important; border: 1px solid var(--s-rule); }
+body.strecker .pattern-diurnal   { background: #3a2c18 !important; color: var(--s-kraft) !important; }
+body.strecker .pattern-crepuscular { background: #2a1f32 !important; color: #caa2d8 !important; }
 
 body.strecker .s-btn {
   display: inline-block;

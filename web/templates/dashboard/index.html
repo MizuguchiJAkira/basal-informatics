@@ -13,15 +13,27 @@
     .pattern-nocturnal { background: #2A2724; color: #F0EDE8; }
     .pattern-diurnal { background: #fef3c7; color: #92400e; }
     .pattern-crepuscular { background: #ede9fe; color: #5b21b6; }
-    .stat-value { font-size: 28px; font-weight: 800; color: #1e293b; line-height: 1; }
-    .dark .stat-value { color: #F0EDE8; }
-    .stat-label { font-size: 12px; color: #64748b; margin-top: 4px; }
-    .dark .stat-label { color: #A39E95; }
-    .section-title { font-size: 18px; font-weight: 700; color: #1e293b; margin-bottom: 16px; }
-    .dark .section-title { color: #F0EDE8; }
+    .stat-value {
+        font-family: "Oswald", "Archivo Narrow", "Impact", sans-serif;
+        font-size: 36px; font-weight: 600; color: #f3ede0; line-height: 1;
+        letter-spacing: 0.01em;
+    }
+    .stat-label {
+        font-family: "Oswald", "Archivo Narrow", sans-serif;
+        font-size: 11px; color: #d4b87a; margin-top: 8px;
+        text-transform: uppercase; letter-spacing: 0.18em; font-weight: 500;
+    }
+    .section-title {
+        font-family: "Oswald", "Archivo Narrow", "Impact", sans-serif;
+        font-size: 22px; font-weight: 600; color: #f3ede0;
+        margin-bottom: 18px;
+        text-transform: uppercase; letter-spacing: 0.06em;
+        padding-bottom: 8px;
+        border-bottom: 1px solid #3a3730;
+    }
     #dash-map { height: 400px; border-radius: 12px; }
     .cam-marker-map {
-        background: #0D7377; color: #fff; border-radius: 50%;
+        background: #6a8a4d; color: #fff; border-radius: 50%;
         width: 32px; height: 32px; display: flex; align-items: center;
         justify-content: center; font-size: 10px; font-weight: 700;
         border: 2px solid #fff; box-shadow: 0 2px 6px rgba(0,0,0,0.35);
@@ -38,15 +50,15 @@
         background: none; border: none; cursor: pointer; padding: 4px 6px;
         color: #94a3b8; transition: color 0.15s;
     }
-    .share-btn:hover { color: #0D7377; }
+    .share-btn:hover { color: #6a8a4d; }
     .species-card.dragging { opacity: 0.4; }
-    .species-card.drag-over { border-top: 3px solid #0D7377; }
+    .species-card.drag-over { border-top: 3px solid #6a8a4d; }
     .drag-handle { cursor: grab; }
     .drag-handle:active { cursor: grabbing; }
     .yoy-card { transition: transform 0.15s, box-shadow 0.15s; }
     .yoy-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.08); }
-    .trend-up { color: #16a34a; }
-    .trend-down { color: #dc2626; }
+    .trend-up { color: #7aa055; }
+    .trend-down { color: #c0551f; }
     .trend-flat { color: #64748b; }
     .yoy-bar { height: 8px; border-radius: 4px; transition: width 0.3s ease; }
 </style>
@@ -115,7 +127,7 @@
                     </div>
                 </div>
                 <div>
-                    <div class="text-5xl font-black" id="coverage-grade" style="color:#0D7377">--</div>
+                    <div class="text-5xl font-black" id="coverage-grade" style="color:#6a8a4d">--</div>
                     <div class="text-xs text-slate-400 dark:text-gray-400 mt-1">Network Grade</div>
                 </div>
             </div>
@@ -128,7 +140,7 @@
                         <span class="text-slate-500 dark:text-gray-400" id="sub-density-val">--</span>
                     </div>
                     <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2.5">
-                        <div id="sub-density-bar" class="h-2.5 rounded-full transition-all" style="width:0%;background:#0D7377"></div>
+                        <div id="sub-density-bar" class="h-2.5 rounded-full transition-all" style="width:0%;background:#6a8a4d"></div>
                     </div>
                 </div>
                 <div>
@@ -137,7 +149,7 @@
                         <span class="text-slate-500 dark:text-gray-400" id="sub-diversity-val">--</span>
                     </div>
                     <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2.5">
-                        <div id="sub-diversity-bar" class="h-2.5 rounded-full transition-all" style="width:0%;background:#3b82f6"></div>
+                        <div id="sub-diversity-bar" class="h-2.5 rounded-full transition-all" style="width:0%;background:#d4b87a"></div>
                     </div>
                 </div>
                 <div>
@@ -146,7 +158,7 @@
                         <span class="text-slate-500 dark:text-gray-400" id="sub-distribution-val">--</span>
                     </div>
                     <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2.5">
-                        <div id="sub-distribution-bar" class="h-2.5 rounded-full transition-all" style="width:0%;background:#f59e0b"></div>
+                        <div id="sub-distribution-bar" class="h-2.5 rounded-full transition-all" style="width:0%;background:#c89a3a"></div>
                     </div>
                 </div>
                 <div>
@@ -155,7 +167,7 @@
                         <span class="text-slate-500 dark:text-gray-400" id="sub-temporal-val">--</span>
                     </div>
                     <div class="w-full bg-gray-100 dark:bg-gray-700 rounded-full h-2.5">
-                        <div id="sub-temporal-bar" class="h-2.5 rounded-full transition-all" style="width:0%;background:#8b5cf6"></div>
+                        <div id="sub-temporal-bar" class="h-2.5 rounded-full transition-all" style="width:0%;background:#9a6a3a"></div>
                     </div>
                 </div>
             </div>
@@ -438,9 +450,9 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
 (function() {
     const PID = {{ property.id }};
     const COLORS = {
-        navy: '#1e293b', teal: '#0D7377', blue: '#3b82f6',
-        amber: '#f59e0b', red: '#ef4444', green: '#22c55e',
-        purple: '#8b5cf6', pink: '#ec4899', cyan: '#06b6d4',
+        navy: '#1e293b', teal: '#6a8a4d', blue: '#d4b87a',
+        amber: '#c89a3a', red: '#c0551f', green: '#7aa055',
+        purple: '#9a6a3a', pink: '#ec4899', cyan: '#06b6d4',
         orange: '#f97316', lime: '#84cc16', indigo: '#6366f1'
     };
     const PALETTE = [COLORS.teal, '#94a3b8', COLORS.blue, COLORS.amber, COLORS.red,
@@ -560,10 +572,10 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
         document.getElementById('coverage-grade').textContent = data.grade;
 
         const gradeEl = document.getElementById('coverage-grade');
-        if (data.overall_score >= 80) gradeEl.style.color = '#22c55e';
-        else if (data.overall_score >= 60) gradeEl.style.color = '#0D7377';
-        else if (data.overall_score >= 50) gradeEl.style.color = '#f59e0b';
-        else gradeEl.style.color = '#ef4444';
+        if (data.overall_score >= 80) gradeEl.style.color = '#7aa055';
+        else if (data.overall_score >= 60) gradeEl.style.color = '#6a8a4d';
+        else if (data.overall_score >= 50) gradeEl.style.color = '#c89a3a';
+        else gradeEl.style.color = '#c0551f';
 
         const ctx = document.getElementById('coverage-gauge').getContext('2d');
         if (window._coverageChart) window._coverageChart.destroy();
@@ -574,7 +586,7 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
                 datasets: [{
                     data: [score, 100 - score],
                     backgroundColor: [
-                        score >= 80 ? '#22c55e' : score >= 60 ? '#0D7377' : score >= 50 ? '#f59e0b' : '#ef4444',
+                        score >= 80 ? '#7aa055' : score >= 60 ? '#6a8a4d' : score >= 50 ? '#c89a3a' : '#c0551f',
                         isDark() ? '#3D3A35' : '#f1f5f9'
                     ],
                     borderWidth: 0
@@ -785,7 +797,7 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
                 heatHtml = '<div class="heatstrip mt-3">';
                 act.hourly.forEach((v, h) => {
                     const opacity = (v / max * 0.8 + 0.05).toFixed(2);
-                    const bg = h < 5 || h >= 21 ? '#1e293b' : (h < 7 || h >= 17 ? '#6366f1' : '#f59e0b');
+                    const bg = h < 5 || h >= 21 ? '#1e293b' : (h < 7 || h >= 17 ? '#6366f1' : '#c89a3a');
                     heatHtml += `<div style="background:${bg};opacity:${opacity}" title="Hour ${h}: ${v} events"></div>`;
                 });
                 heatHtml += '</div>';

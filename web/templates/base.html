@@ -48,11 +48,17 @@
         }
     </script>
     <script>
-        // Apply dark mode before paint to avoid flash
-        // Skip dark mode if ?embed=1 is present (for home page previews)
+        // Apply dark mode before paint to avoid flash.
+        // Strecker is dark-only — always apply. Basal respects user preference.
+        {% if is_basal_site %}
         if (localStorage.getItem('darkMode') === 'true' && !window.location.search.includes('embed=1')) {
             document.documentElement.classList.add('dark');
         }
+        {% else %}
+        if (!window.location.search.includes('embed=1')) {
+            document.documentElement.classList.add('dark');
+        }
+        {% endif %}
     </script>
     <style>
         body { font-family: 'Libre Baskerville', Georgia, serif; }
