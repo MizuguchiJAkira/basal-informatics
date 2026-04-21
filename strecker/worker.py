@@ -351,43 +351,50 @@ def _aggregate_to_property(db, pj, detections, extract_dir=None):
     # DetectionSummary work above — the dashboard KPIs / density still
     # render, the gallery just stays empty for that job.
     if extract_dir:
+        # Commit the DetectionSummary work first. If photo upload then
+        # hits a per-row integrity problem (schema width mismatch,
+        # encoding quirk, etc.), we can rollback *just* that savepoint
+        # and keep the KPIs the hunter sees. Without this split, a
+        # single bad row poisoned the whole transaction and we lost
+        # the aggregate numbers too.
         try:
-            from strecker import storage as _storage
-            common = _common_name_map()
-            photos_added = 0
-            for d in detections:
-                if not d.camera_id or not d.image_filename:
-                    continue
-                cam = existing_cams.get(d.camera_id)
-                if not cam:
-                    continue
-                season = det_to_season.get(id(d))
-                season_id = season.id if season else None
-                local_path = os.path.join(extract_dir, d.image_filename)
-                if not os.path.exists(local_path):
-                    continue
-                # Stable key: one photo per (job, original path).
-                # Re-runs of the same ZIP upsert safely via unique(spaces_key).
-                digest = hashlib.sha1(
-                    f"{pj.job_id}:{d.image_filename}".encode("utf-8")
-                ).hexdigest()[:16]
-                spaces_key = (
-                    f"photos/{pj.property_id}/{pj.job_id}/{digest}.jpg"
-                )
+            db.session.commit()
+        except Exception:
+            logger.exception("DetectionSummary commit failed; rolling back")
+            db.session.rollback()
+            raise
+
+        from strecker import storage as _storage
+        common = _common_name_map()
+        photos_added = 0
+        photo_failures = 0
+        for d in detections:
+            if not d.camera_id or not d.image_filename:
+                continue
+            cam = existing_cams.get(d.camera_id)
+            if not cam:
+                continue
+            season = det_to_season.get(id(d))
+            season_id = season.id if season else None
+            local_path = os.path.join(extract_dir, d.image_filename)
+            if not os.path.exists(local_path):
+                continue
+            digest = hashlib.sha1(
+                f"{pj.job_id}:{d.image_filename}".encode("utf-8")
+            ).hexdigest()[:16]
+            spaces_key = f"photos/{pj.property_id}/{pj.job_id}/{digest}.jpg"
+
+            # Savepoint-per-row: a schema overflow or encoding problem
+            # on one detection rolls back ONE row, not the whole batch.
+            try:
                 existing_photo = Photo.query.filter_by(
                     spaces_key=spaces_key
                 ).first()
                 if existing_photo:
                     continue
-                try:
-                    _storage.put_file(
-                        local_path, spaces_key, content_type="image/jpeg",
-                    )
-                except Exception:
-                    logger.exception(
-                        "Photo upload failed (%s); continuing", spaces_key
-                    )
-                    continue
+                _storage.put_file(
+                    local_path, spaces_key, content_type="image/jpeg",
+                )
                 conf = (d.confidence_calibrated
                         if d.confidence_calibrated is not None
                         else d.confidence)
@@ -408,20 +415,26 @@ def _aggregate_to_property(db, pj, detections, extract_dir=None):
                     review_required=bool(d.review_required),
                     taken_at=d.timestamp,
                 ))
+                db.session.flush()
                 photos_added += 1
-            db.session.flush()
-            if photos_added:
-                logger.info(
-                    "Job %s: uploaded %d photos to Spaces + inserted Photo rows",
-                    pj.job_id, photos_added,
+            except Exception:
+                logger.exception(
+                    "Photo row failed (%s); rolling back just this row",
+                    spaces_key,
                 )
+                db.session.rollback()
+                photo_failures += 1
+        try:
+            db.session.commit()
         except Exception:
-            logger.exception(
-                "Job %s: photo upload batch failed — KPIs kept, gallery empty",
-                pj.job_id,
+            logger.exception("Photo-batch final commit failed")
+            db.session.rollback()
+        if photos_added or photo_failures:
+            logger.info(
+                "Job %s: uploaded %d photos (%d failed) to Spaces + "
+                "inserted Photo rows",
+                pj.job_id, photos_added, photo_failures,
             )
-            # Don't re-raise; the DetectionSummary commit below is what
-            # matters for dashboard stats.
 
     # 5. Mark the Upload complete
     if pj.upload_id:

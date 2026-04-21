@@ -523,7 +523,10 @@ class Photo(db.Model):
     species_key = db.Column(db.String(200), index=True)
     common_name = db.Column(db.String(200))
     confidence = db.Column(db.Float)
-    independent_event_id = db.Column(db.String(32))
+    # Width 80: IE-<camera_label>-<species_key>-<seq6> where species
+    # keys like cottontail_rabbit and camera labels like _unlabeled
+    # push past the naive 32-char cap. See migration 0005.
+    independent_event_id = db.Column(db.String(80))
     review_required = db.Column(db.Boolean, default=False)
     # JSON array of MegaDetector bboxes (for later Re-ID work).
     bbox_json = db.Column(db.Text)

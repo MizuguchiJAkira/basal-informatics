@@ -29,7 +29,7 @@ CREATE TABLE IF NOT EXISTS photos (
     species_key              VARCHAR(200),         -- SpeciesNet class (null if MD-only detection)
     common_name              VARCHAR(200),
     confidence               REAL,                 -- classifier confidence 0-1
-    independent_event_id     VARCHAR(32),          -- groups burst/dependent triggers
+    independent_event_id     VARCHAR(80),          -- groups burst/dependent triggers (see migration 0005)
     review_required          BOOLEAN DEFAULT FALSE,
     bbox_json                TEXT,                 -- JSON array of MegaDetector bboxes
     taken_at                 TIMESTAMP,            -- EXIF DateTimeOriginal
