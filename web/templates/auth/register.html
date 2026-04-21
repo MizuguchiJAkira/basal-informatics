@@ -18,8 +18,28 @@
     {% endif %}
     {% endwith %}
 
+    {% if require_invite %}
+    <div class="mb-6 px-4 py-3 text-sm rounded border"
+         style="background: rgba(212,184,122,0.10); border-color: rgba(212,184,122,0.35); color: var(--s-kraft, #d4b87a);">
+        <strong>Beta — by invitation only.</strong>
+        Paste your invite code below. No code? Email
+        <a href="mailto:akira@strecker.app" class="underline">akira@strecker.app</a>.
+    </div>
+    {% endif %}
+
     <form method="POST" class="space-y-5">
         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        {% if require_invite %}
+        <div>
+            <label for="invite_code" class="block text-sm font-medium text-slate-500 mb-1">Invite code</label>
+            <input type="text" id="invite_code" name="invite_code" required
+                   autocapitalize="characters" autocomplete="off"
+                   value="{{ invite_code or '' }}"
+                   class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-600 focus:border-transparent font-mono uppercase"
+                   placeholder="STREK-XXXXXXXX">
+        </div>
+        {% endif %}
+
         <div>
             <label for="display_name" class="block text-sm font-medium text-slate-500 mb-1">Display Name</label>
             <input type="text" id="display_name" name="display_name"

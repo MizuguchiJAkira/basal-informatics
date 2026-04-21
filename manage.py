@@ -84,6 +84,110 @@ def db_seed():
         click.echo("Start PostGIS with: docker-compose up -d db")
 
 
+# --- Invites (beta signup gating) ---
+
+@cli.group()
+def invites():
+    """Manage single-use signup invite codes (Strecker beta gating)."""
+    pass
+
+
+def _mint_code(prefix: str = "STREK") -> str:
+    import secrets
+    return f"{prefix}-{secrets.token_hex(4).upper()}"
+
+
+@invites.command("generate")
+@click.option("--count", default=1, type=int, help="How many codes to mint.")
+@click.option("--prefix", default="STREK", show_default=True,
+              help="Prefix before the random hex (keeps codes visually branded).")
+@click.option("--intended-for", default=None,
+              help="Free-form recipient note (e.g. 'Jim Cross — TNDeer').")
+@click.option("--note", default=None,
+              help="Longer note attached to each code.")
+def invites_generate(count, prefix, intended_for, note):
+    """Mint N single-use invite codes and print them.
+
+    Example:
+        python manage.py invites generate --count 10 --intended-for "TNDeer wave 1"
+    """
+    from web.app import create_app
+    from db.models import db as _db, InviteCode
+    app = create_app(demo=False, site="strecker")
+    minted = []
+    with app.app_context():
+        for _ in range(count):
+            for _attempt in range(5):
+                code = _mint_code(prefix)
+                exists = InviteCode.query.filter_by(code=code).first()
+                if exists:
+                    continue
+                inv = InviteCode(
+                    code=code,
+                    intended_for=intended_for,
+                    note=note,
+                )
+                _db.session.add(inv)
+                minted.append(code)
+                break
+        _db.session.commit()
+    click.echo(f"Minted {len(minted)} code(s):")
+    for c in minted:
+        url = f"https://strecker.app/register?code={c}"
+        click.echo(f"  {c}   →   {url}")
+
+
+@invites.command("list")
+@click.option("--show-used/--hide-used", default=False,
+              help="Include redeemed codes in the output.")
+def invites_list(show_used):
+    """Show outstanding (and optionally redeemed) invite codes."""
+    from web.app import create_app
+    from db.models import InviteCode, User
+    app = create_app(demo=False, site="strecker")
+    with app.app_context():
+        q = InviteCode.query
+        if not show_used:
+            q = q.filter(InviteCode.used_at.is_(None))
+        q = q.order_by(InviteCode.created_at.desc())
+        rows = q.all()
+        if not rows:
+            click.echo("(no codes match)")
+            return
+        for r in rows:
+            status = "USED" if r.is_used else "open"
+            who = r.intended_for or "-"
+            redeemer = ""
+            if r.used_by_user_id:
+                u = User.query.get(r.used_by_user_id)
+                if u:
+                    redeemer = f" by {u.email}"
+            click.echo(
+                f"  [{status:>4}] {r.code:<22} {who[:30]:<30}{redeemer}"
+            )
+
+
+@invites.command("revoke")
+@click.argument("code")
+def invites_revoke(code):
+    """Mark a code as used so it can't be redeemed again (without a user)."""
+    from datetime import datetime
+    from web.app import create_app
+    from db.models import db as _db, InviteCode
+    app = create_app(demo=False, site="strecker")
+    with app.app_context():
+        inv = InviteCode.query.filter_by(code=code.strip().upper()).first()
+        if not inv:
+            click.echo(f"No such code: {code}", err=True)
+            sys.exit(1)
+        if inv.is_used:
+            click.echo(f"Already used at {inv.used_at}.")
+            return
+        inv.used_at = datetime.utcnow()
+        _db.session.commit()
+        click.echo(f"Revoked {inv.code}.")
+
+
 # --- Strecker commands ---
 
 @cli.group()

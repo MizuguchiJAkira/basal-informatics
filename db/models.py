@@ -537,6 +537,44 @@ class Photo(db.Model):
         return f"<Photo {self.id} {self.species_key} @ {self.taken_at}>"
 
 
+# ---------------------------------------------------------------------------
+# InviteCode — single-use beta-signup gate.
+# ---------------------------------------------------------------------------
+
+class InviteCode(db.Model):
+    """A one-time signup code minted for a specific hunter invite.
+
+    Any visitor can still browse the marketing site; ``/register`` is
+    the only gated surface. When a code is redeemed, ``used_at`` and
+    ``used_by_user_id`` are set atomically with the new User row so a
+    concurrent second redeem fails on the uniqueness check.
+    """
+    __tablename__ = "invite_codes"
+
+    id = db.Column(db.Integer, primary_key=True)
+    # 32-char cap covers a generous prefix + hex. Typical minted codes
+    # look like "STREK-8f3a2c1b" (14 chars) — plenty of headroom.
+    code = db.Column(db.String(32), nullable=False, unique=True, index=True)
+    intended_for = db.Column(db.String(200))       # "Jim Cross", "TNDeer DM wave 1"
+    note = db.Column(db.Text)                       # free-form extra context
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    created_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True,
+    )
+    used_at = db.Column(db.DateTime)
+    used_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"), nullable=True,
+    )
+
+    @property
+    def is_used(self) -> bool:
+        return self.used_at is not None
+
+    def __repr__(self):
+        flag = "used" if self.is_used else "open"
+        return f"<InviteCode {self.code} [{flag}]>"
+
+
 class DeerIndividual(db.Model):
     """A recognized individual deer tracked via re-identification."""
     __tablename__ = "deer_individuals"
