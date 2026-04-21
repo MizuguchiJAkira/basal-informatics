@@ -253,6 +253,25 @@ def run(db_url: str | None = None, status_only: bool = False) -> int:
 
     pending = [f for f in files if f.name not in applied]
 
+    # Drift detection: filenames in the tracker that we don't have a
+    # matching file for on disk. This happens when someone runs
+    # migrate.py from a container/checkout that's older than the
+    # tracker — the file was applied from a newer codebase but the
+    # runner can't see it, and the "Up to date" message masks that
+    # the current checkout is NOT in sync. Loud warning so the
+    # operator knows to redeploy (or git pull) before trusting the
+    # state.
+    file_names = {f.name for f in files}
+    orphan = sorted(applied - file_names)
+    if orphan:
+        print(
+            "⚠️  WARNING: tracker records migrations that aren't in "
+            "this checkout. Your migrations/ dir is OLDER than the "
+            "database. Rebuild or git pull, then re-run this."
+        )
+        for name in orphan:
+            print(f"    tracker has   {name}  (no matching file here)")
+
     if status_only:
         print(f"Database: {url.split('@')[-1] if '@' in url else url}")
         print(f"Applied ({len(applied)}):")
