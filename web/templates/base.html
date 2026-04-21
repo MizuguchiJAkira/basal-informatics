@@ -15,7 +15,7 @@
     <meta name="description" content="A trail-cam logbook for hunters and landowners. Pull the card, drop the photos in — Strecker sorts every frame by species, station, and hour. Free while in beta.">
     <meta property="og:title" content="Strecker — Know what walks your land.">
     <meta property="og:description" content="Pull the card. Drop the photos in. Every frame sorted by species, station, and hour. A logbook you'll actually open.">
-    <meta property="og:image" content="{{ url_for('static', filename='marketing/journal/plate-01-buck.jpg', _external=True) }}">
+    <meta property="og:image" content="{{ url_for('static', filename='marketing/strecker-logo.png', _external=True) }}">
     <meta property="og:type" content="website">
     <meta name="twitter:card" content="summary_large_image">
     {% endif %}
@@ -31,6 +31,7 @@
        Warm earth palette, photo-forward. #}
     <link href="https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/strecker.css') }}">
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='marketing/strecker-logo.png') }}">
     {% endif %}
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -113,8 +114,15 @@
     {% if request.args.get('embed') != '1' %}
     <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 relative z-50">
         <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-            <a href="/" class="text-xl font-bold text-teal-600 tracking-tight">
+            <a href="/" class="text-xl font-bold text-teal-600 tracking-tight flex items-center">
+                {% if is_basal_site %}
                 {{ brand_name }}
+                {% else %}
+                <img src="{{ url_for('static', filename='marketing/strecker-logo-trans.png') }}"
+                     alt="Strecker"
+                     class="block"
+                     style="height: 80px; width: auto;">
+                {% endif %}
             </a>
 
             <!-- Desktop nav -->
