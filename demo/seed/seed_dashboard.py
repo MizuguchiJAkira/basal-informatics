@@ -1,6 +1,10 @@
-"""Direct-SQL demo seeder for Edwards Plateau Ranch.
+"""Direct-SQL demo seeder for the (SYNTHETIC) Edwards Plateau Ranch.
 
-Generates realistic 6-week monitoring data for a Texas Hill Country ranch:
+⚠️ FABRICATED DEMO DATA — NOT A REAL RANCH, NOT A REAL CUSTOMER.
+See ``demo/README.md`` for the full disclaimer.
+
+Generates plausible-looking 6-week monitoring data for a hypothetical
+Texas Hill Country ranch:
 - 3 camera stations at different placement contexts (feeder, feeder, trail)
 - 4 species: feral hog, white-tailed deer, raccoon, coyote
 - Density profiles reflect actual hog-agriculture literature:

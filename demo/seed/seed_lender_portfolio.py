@@ -1,5 +1,11 @@
-"""Seed a full lender portfolio: Farm Credit of Central Texas with 5 parcels
-spanning the exposure-tier range. Drives the YC-partner demo.
+"""Seed a SYNTHETIC lender portfolio for demo/pitch purposes.
+
+⚠️ FABRICATED DATA — not a real lender, not a real loan book, not
+real parcels. "Farm Credit of Central Texas" is a hypothetical
+institution name chosen to mirror the Farm Credit System branding
+convention. The parcels, acreages, and tier targets below are
+invented to produce a visually-complete portfolio UI for product
+demonstrations. See ``demo/README.md``.
 
 Parcels (by intent — post-IPW tier targets):
   1. Edwards Plateau Ranch      2,340 ac sorghum   Elevated  (existing + 1 random cam added here)

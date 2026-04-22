@@ -1,8 +1,15 @@
-"""Generate Edwards Plateau demo data for Basal Informatics.
+"""Generate synthetic demo data for Basal Informatics.
 
-Creates a realistic camera trap dataset for a 2,340-acre ranch in
-Kimble County, Texas. 14 cameras, 12 detected species, ~12K raw photos
-collapsing to ~3.6K independent events via 30-min threshold.
+⚠️ SYNTHETIC — NOT A REAL RANCH. The "Edwards Plateau Ranch" scenario
+(a 2,340-acre parcel in Kimble County, TX, 14 cameras, 12 species,
+~12K raw photos) is FABRICATED for product demo, test fixtures, and
+the sample Nature Exposure Report. It is not a real customer, not
+real trail-camera photos, and not representative of the pipeline's
+statistical performance on real data. See ``demo/README.md``.
+
+Production data (live Farm Credit pilot parcels, Strecker hunter
+uploads) lives in the prod Postgres + Spaces, never in this
+repository.
 
 Usage:
     python -m demo.generate_demo_data

@@ -1,4 +1,9 @@
-"""Seed Strecker-side neighboring-lease cameras for the DetectionIngest bridge.
+"""Seed SYNTHETIC neighboring-lease camera data for demo purposes.
+
+⚠️ FABRICATED DATA — not a real hunter, not a real lease. See
+``demo/README.md``.
+
+Seed Strecker-side neighboring-lease cameras for the DetectionIngest bridge.
 
 Creates the "data from hunter cameras on adjacent property" signal that the
 Nature Exposure Report shows as supplementary coverage under "Coverage
