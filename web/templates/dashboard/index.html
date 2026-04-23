@@ -77,10 +77,9 @@
         <select id="season-select" class="border border-gray-300 dark:border-gray-600 rounded-lg px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-200 focus:ring-2 focus:ring-teal-500 outline-none">
             <option value="">Loading seasons...</option>
         </select>
-        <a href="/properties/{{ property.id }}/deer"
-           class="px-4 py-2 border border-teal-600 text-teal-600 dark:text-teal-400 dark:border-teal-500 text-sm font-medium rounded-lg hover:bg-teal-50 dark:hover:bg-gray-700 transition">
-            My Deer
-        </a>
+        {# "My Deer" / individual re-identification is not yet live on real
+           data — the encoder is scaffold-only. Link hidden until the
+           production encoder ships. See the "Coming soon" section below. #}
         <a href="/properties/{{ property.id }}/upload"
            class="px-4 py-2 bg-teal-600 text-white text-sm font-medium rounded-lg hover:bg-teal-700 transition">
             Upload Photos
@@ -354,8 +353,13 @@
     </div>
 </div>
 
-<!-- Buck:Doe Ratio (conditional) -->
-<div id="buck-doe-section" class="hidden mb-8">
+<!-- Buck:Doe Ratio — INTENTIONALLY always hidden until antler
+     classification runs on a real model. Current pipeline fallback
+     is random 35/65; we don't show random numbers to a hunter. The
+     section moves to the "Coming soon" block below. We keep the
+     markup + #buck-doe-section id so the showEmpty() JS that hides
+     a canonical list of section ids doesn't throw. -->
+<div id="buck-doe-section" style="display:none !important" class="hidden mb-8">
     <h2 class="section-title">White-tailed Deer — Buck:Doe Ratio</h2>
     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6 flex items-center gap-8">
         <div style="width:180px;height:180px;">
@@ -449,6 +453,113 @@
     <h2 class="section-title">Camera Network Map</h2>
     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl overflow-hidden">
         <div id="dash-map"></div>
+    </div>
+</div>
+
+<!-- Coming Soon — features in development. We show this deliberately
+     so a hunter knows what's on the roadmap and doesn't mistake a
+     future feature for a missing one. -->
+<div class="mb-12">
+    <h2 class="section-title">Coming Soon</h2>
+    <div style="background: #26241f; border: 1px solid #3a3730; padding: 28px; border-radius: 4px;">
+        <p style="color: #d8cfb9; font-size: 15px; line-height: 1.55; margin: 0 0 20px; max-width: 62ch;">
+            We're shipping the core species-and-event logbook now.
+            Individual-animal features, trend analytics, and in-dashboard
+            corrections are under active development. You'll see them
+            appear here automatically as they land.
+        </p>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: 16px;">
+            <div style="border-left: 2px solid #d4b87a; padding: 4px 0 4px 14px;">
+                <div style="font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: #d4b87a; margin-bottom: 4px;">
+                    Individual deer re-identification
+                </div>
+                <div style="color: #fff; font-size: 15px; font-weight: 500; margin-bottom: 4px;">
+                    Name every buck. Track him across seasons.
+                </div>
+                <div style="color: #9a9077; font-size: 13px; line-height: 1.45;">
+                    We'll embed each deer crop with a trained encoder,
+                    match against known individuals on the property,
+                    and maintain a running roster with first-seen /
+                    last-seen per deer.
+                </div>
+            </div>
+
+            <div style="border-left: 2px solid #d4b87a; padding: 4px 0 4px 14px;">
+                <div style="font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: #d4b87a; margin-bottom: 4px;">
+                    Buck / Doe ratio
+                </div>
+                <div style="color: #fff; font-size: 15px; font-weight: 500; margin-bottom: 4px;">
+                    Antler classification, honestly.
+                </div>
+                <div style="color: #9a9077; font-size: 13px; line-height: 1.45;">
+                    Active May&ndash;November (outside of antler shed).
+                    Disabled until the antler classifier is trained and
+                    evaluated — we won't show randomized ratios to you.
+                </div>
+            </div>
+
+            <div style="border-left: 2px solid #d4b87a; padding: 4px 0 4px 14px;">
+                <div style="font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: #d4b87a; margin-bottom: 4px;">
+                    Year-over-year trends
+                </div>
+                <div style="color: #fff; font-size: 15px; font-weight: 500; margin-bottom: 4px;">
+                    What changed since last season.
+                </div>
+                <div style="color: #9a9077; font-size: 13px; line-height: 1.45;">
+                    Per-species detection rate, hourly activity shift,
+                    and population trajectory across seasons. Unlocks
+                    automatically once you have two seasons of data.
+                </div>
+            </div>
+
+            <div style="border-left: 2px solid #d4b87a; padding: 4px 0 4px 14px;">
+                <div style="font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: #d4b87a; margin-bottom: 4px;">
+                    Per-photo corrections
+                </div>
+                <div style="color: #fff; font-size: 15px; font-weight: 500; margin-bottom: 4px;">
+                    Fix a misclassification in one click.
+                </div>
+                <div style="color: #9a9077; font-size: 13px; line-height: 1.45;">
+                    See a bobcat labeled as a gray fox? Click to
+                    correct. Your feedback feeds a per-region accuracy
+                    tracker and retrains the review threshold.
+                </div>
+            </div>
+
+            <div style="border-left: 2px solid #d4b87a; padding: 4px 0 4px 14px;">
+                <div style="font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: #d4b87a; margin-bottom: 4px;">
+                    Mobile app
+                </div>
+                <div style="color: #fff; font-size: 15px; font-weight: 500; margin-bottom: 4px;">
+                    Upload in the field.
+                </div>
+                <div style="color: #9a9077; font-size: 13px; line-height: 1.45;">
+                    Direct SD-card ingest from the truck, push
+                    notifications when processing finishes, offline
+                    review of recent sightings. Web works now; native
+                    app is next.
+                </div>
+            </div>
+
+            <div style="border-left: 2px solid #d4b87a; padding: 4px 0 4px 14px;">
+                <div style="font-family: 'Oswald', sans-serif; text-transform: uppercase; letter-spacing: 0.16em; font-size: 11px; color: #d4b87a; margin-bottom: 4px;">
+                    Ranch-team sharing
+                </div>
+                <div style="color: #fff; font-size: 15px; font-weight: 500; margin-bottom: 4px;">
+                    Bring the whole crew.
+                </div>
+                <div style="color: #9a9077; font-size: 13px; line-height: 1.45;">
+                    Co-hunters, ranch managers, and leaseholders view
+                    the same property with scoped permissions. One
+                    upload, many eyes.
+                </div>
+            </div>
+        </div>
+
+        <p style="color: #7a7364; font-size: 12px; margin: 24px 0 0; line-height: 1.5; font-style: italic;">
+            Want something that isn't on this list? Email
+            <a href="mailto:akira@strecker.app" style="color: #d4b87a;">akira@strecker.app</a>.
+        </p>
     </div>
 </div>
 
