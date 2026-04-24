@@ -393,7 +393,7 @@
         <div id="species-dropdown" class="hidden"></div>
     </div>
     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
-        <div style="position:relative; height: 420px;">
+        <div style="position:relative; height: 500px;">
             <canvas id="activity-chart"></canvas>
             <div id="activity-tooltip" class="hidden" style="position:absolute; left:0; pointer-events:none; z-index:20;"></div>
         </div>
@@ -1356,7 +1356,33 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    legend: { display: false },
+                    // Legend was hidden back when the section had a
+                    // species-filter dropdown doing the same job.
+                    // Now that the dropdown's gone, the legend is
+                    // the only key to which line is which species.
+                    legend: {
+                        display: true,
+                        position: 'bottom',
+                        align: 'start',
+                        labels: {
+                            color: '#d8cfb9',
+                            font: { family: "'Inter', sans-serif", size: 12 },
+                            boxWidth: 10,
+                            boxHeight: 10,
+                            padding: 14,
+                            usePointStyle: true,
+                            pointStyle: 'circle',
+                        },
+                        onClick: (e, legendItem, legend) => {
+                            // Keep Chart.js's default "click to hide
+                            // this dataset" behaviour — useful for a
+                            // hunter who wants to isolate one species.
+                            const ci = legend.chart;
+                            const ix = legendItem.datasetIndex;
+                            ci.getDatasetMeta(ix).hidden = !ci.isDatasetVisible(ix);
+                            ci.update();
+                        },
+                    },
                     tooltip: {
                         enabled: false,
                         external: function(context) {
