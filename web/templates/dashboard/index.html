@@ -393,9 +393,31 @@
         <div id="species-dropdown" class="hidden"></div>
     </div>
     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
-        <div style="position:relative; height: 500px;">
-            <canvas id="activity-chart"></canvas>
-            <div id="activity-tooltip" class="hidden" style="position:absolute; left:0; pointer-events:none; z-index:20;"></div>
+        <div style="display:flex; gap: 24px; align-items: stretch;">
+            <!-- Plot area: stacked bar chart, 24 hours × N species. -->
+            <div style="position:relative; flex: 1 1 auto; min-width: 0; height: 500px;">
+                <canvas id="activity-chart"></canvas>
+                <div id="activity-tooltip" class="hidden" style="position:absolute; left:0; pointer-events:none; z-index:20;"></div>
+            </div>
+
+            <!-- Custom legend: vertical list with its own header, a
+                 visible divider between it and the plot, and clickable
+                 rows that toggle each species' visibility. Populated
+                 by _drawActivityChart() alongside the Chart.js data. -->
+            <div style="flex: 0 0 200px; border-left: 1px solid #3a3730;
+                        padding-left: 20px; overflow-y: auto; max-height: 500px;">
+                <div style="font-family: 'Oswald', sans-serif; font-size: 11px;
+                            letter-spacing: 0.22em; text-transform: uppercase;
+                            color: #d4b87a; font-weight: 600; margin-bottom: 12px;
+                            padding-bottom: 8px; border-bottom: 1px solid #3a3730;">
+                    Legend
+                </div>
+                <div id="activity-legend" class="flex flex-col gap-2 text-sm"></div>
+                <div style="margin-top: 16px; font-size: 11px; color: #7a7364;
+                            font-style: italic; line-height: 1.4;">
+                    Click a species to toggle it on/off.
+                </div>
+            </div>
         </div>
     </div>
 </div>
@@ -1330,59 +1352,33 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
         if (window._actChart) window._actChart.destroy();
 
         const hours = Array.from({length: 24}, (_, i) => `${String(i).padStart(2,'0')}:00`);
-        let colorIdx = 0;
         const datasets = window._activityData.map((sp, origIdx) => {
             const visible = window._visibleSpecies.has(sp.species_key);
+            const color = PALETTE[origIdx % PALETTE.length];
             return {
                 label: sp.species_key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
+                _speciesKey: sp.species_key,
                 data: sp.hourly,
-                borderColor: PALETTE[origIdx % PALETTE.length],
-                backgroundColor: PALETTE[origIdx % PALETTE.length] + '20',
-                borderWidth: 2,
-                tension: 0.3,
-                fill: false,
-                pointRadius: 2,
+                backgroundColor: color,
+                borderColor: color,
+                borderWidth: 0,
                 hidden: !visible,
             };
         });
 
         window._actChart = new Chart(ctx, {
-            type: 'line',
+            type: 'bar',                  // stacked bar reads better than 12 overlaid lines
             data: { labels: hours, datasets },
             options: {
                 responsive: true,
-                // Fill the 420 px tall container on the dashboard
-                // instead of defaulting to the canvas aspect ratio.
                 maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
-                    // Legend was hidden back when the section had a
-                    // species-filter dropdown doing the same job.
-                    // Now that the dropdown's gone, the legend is
-                    // the only key to which line is which species.
-                    legend: {
-                        display: true,
-                        position: 'right',     // vertical list is easier to scan with 12 species
-                        align: 'start',
-                        labels: {
-                            color: '#d8cfb9',
-                            font: { family: "'Inter', sans-serif", size: 13 },
-                            boxWidth: 10,
-                            boxHeight: 10,
-                            padding: 12,
-                            usePointStyle: true,
-                            pointStyle: 'circle',
-                        },
-                        onClick: (e, legendItem, legend) => {
-                            // Keep Chart.js's default "click to hide
-                            // this dataset" behaviour — useful for a
-                            // hunter who wants to isolate one species.
-                            const ci = legend.chart;
-                            const ix = legendItem.datasetIndex;
-                            ci.getDatasetMeta(ix).hidden = !ci.isDatasetVisible(ix);
-                            ci.update();
-                        },
-                    },
+                    // Built-in legend is OFF — we render our own
+                    // HTML legend in #activity-legend (see
+                    // _renderActivityLegend below) with a visible
+                    // divider, section header, and click-to-toggle.
+                    legend: { display: false },
                     tooltip: {
                         enabled: false,
                         external: function(context) {
@@ -1416,10 +1412,12 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
                 },
                 scales: {
                     x: {
+                        stacked: true,       // stack species per hour
                         grid: { display: false },
                         ticks: { color: chartTickColor(), font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }
                     },
                     y: {
+                        stacked: true,
                         beginAtZero: true,
                         title: { display: true, text: 'Events', color: chartTickColor(), font: { size: 11 } },
                         ticks: { color: chartTickColor(), font: { size: 10 } },
@@ -1427,6 +1425,43 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
                     }
                 }
             }
+        });
+
+        _renderActivityLegend();
+    }
+
+    function _renderActivityLegend() {
+        const host = document.getElementById('activity-legend');
+        if (!host || !window._actChart) return;
+        host.innerHTML = '';
+        window._actChart.data.datasets.forEach((ds, ix) => {
+            const row = document.createElement('button');
+            row.type = 'button';
+            row.style.cssText = 'display:flex;align-items:center;gap:10px;'
+                + 'padding:6px 6px;width:100%;text-align:left;'
+                + 'background:transparent;border:none;cursor:pointer;'
+                + 'border-radius:4px;transition:background 0.12s;';
+            row.onmouseover = () => row.style.background = '#2a2823';
+            row.onmouseout = () => row.style.background = 'transparent';
+            const isHidden = window._actChart.getDatasetMeta(ix).hidden === true
+                             || ds.hidden === true;
+            row.innerHTML = `
+                <span style="width:12px;height:12px;border-radius:50%;
+                             background:${ds.backgroundColor};flex-shrink:0;
+                             ${isHidden ? 'opacity:0.25;' : ''}"></span>
+                <span style="color:${isHidden ? '#7a7364' : '#d8cfb9'};
+                             font-size:13px;
+                             text-decoration:${isHidden ? 'line-through' : 'none'};">
+                    ${ds.label}
+                </span>
+            `;
+            row.onclick = () => {
+                const meta = window._actChart.getDatasetMeta(ix);
+                meta.hidden = meta.hidden === null ? !window._actChart.data.datasets[ix].hidden : null;
+                window._actChart.update();
+                _renderActivityLegend();
+            };
+            host.appendChild(row);
         });
     }
 
