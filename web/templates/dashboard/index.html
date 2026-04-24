@@ -1359,15 +1359,18 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
                 label: sp.species_key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()),
                 _speciesKey: sp.species_key,
                 data: sp.hourly,
-                backgroundColor: color,
                 borderColor: color,
-                borderWidth: 0,
+                backgroundColor: color + '20',
+                borderWidth: 2,
+                tension: 0.3,
+                fill: false,
+                pointRadius: 2,
                 hidden: !visible,
             };
         });
 
         window._actChart = new Chart(ctx, {
-            type: 'bar',                  // stacked bar reads better than 12 overlaid lines
+            type: 'line',                 // back to overlaid lines
             data: { labels: hours, datasets },
             options: {
                 responsive: true,
@@ -1412,12 +1415,10 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
                 },
                 scales: {
                     x: {
-                        stacked: true,       // stack species per hour
                         grid: { display: false },
                         ticks: { color: chartTickColor(), font: { size: 10 }, maxRotation: 0, autoSkip: true, maxTicksLimit: 12 }
                     },
                     y: {
-                        stacked: true,
                         beginAtZero: true,
                         title: { display: true, text: 'Events', color: chartTickColor(), font: { size: 11 } },
                         ticks: { color: chartTickColor(), font: { size: 10 } },
@@ -1446,8 +1447,8 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
             const isHidden = window._actChart.getDatasetMeta(ix).hidden === true
                              || ds.hidden === true;
             row.innerHTML = `
-                <span style="width:12px;height:12px;border-radius:50%;
-                             background:${ds.backgroundColor};flex-shrink:0;
+                <span style="width:18px;height:3px;border-radius:1px;
+                             background:${ds.borderColor};flex-shrink:0;
                              ${isHidden ? 'opacity:0.25;' : ''}"></span>
                 <span style="color:${isHidden ? '#7a7364' : '#d8cfb9'};
                              font-size:13px;
