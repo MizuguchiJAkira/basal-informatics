@@ -369,32 +369,32 @@
     </div>
 </div>
 
-<!-- Daily Activity Patterns — restored as its own section. The chart
-     aggregates across species (or a user-picked species filter) so it
-     doesn't duplicate what the per-species heat strip already shows
-     inside each Species Inventory card. -->
+<!-- Overall Property Activity — aggregate across all species.
+     Per-species hourly distribution already lives inside each card's
+     heat strip in the Species Inventory below; this chart answers a
+     different question ("when does stuff move on my property?") so
+     the species-filter dropdown is intentionally gone.
+     The #species-filter-btn / #species-dropdown / #species-filter-label
+     ids remain in the DOM (hidden) because existing JS wires them up
+     at boot — removing them would null-deref. -->
 <div class="mb-8">
-    <div class="flex items-center justify-between mb-4">
-        <h2 class="section-title mb-0">Daily Activity Patterns</h2>
-        <div class="relative inline-block">
-            <button id="species-filter-btn" onclick="toggleSpeciesDropdown()"
-                    class="flex items-center gap-2 px-3 py-1.5 border border-gray-300 dark:border-gray-600 rounded-lg text-xs font-medium text-slate-700 dark:text-gray-200 bg-white dark:bg-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600 transition">
-                <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z"/>
-                </svg>
-                <span id="species-filter-label">All Species</span>
-                <svg class="w-3.5 h-3.5 text-slate-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                </svg>
-            </button>
-            <div id="species-dropdown" class="hidden absolute right-0 top-full mt-1 w-64 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl shadow-lg z-30 py-2 max-h-72 overflow-y-auto">
-                <!-- populated by JS -->
-            </div>
+    <div class="flex items-center justify-between mb-3">
+        <div>
+            <h2 class="section-title mb-0">Overall Property Activity</h2>
+            <p class="text-xs text-slate-500 dark:text-gray-400 mt-1">
+                Independent-event counts by hour of day, across every
+                species. Per-species patterns are on each card below.
+            </p>
         </div>
     </div>
+    <div class="hidden">
+        <button id="species-filter-btn"></button>
+        <span id="species-filter-label">All Species</span>
+        <div id="species-dropdown" class="hidden"></div>
+    </div>
     <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-6">
-        <div style="position:relative">
-            <canvas id="activity-chart" height="100"></canvas>
+        <div style="position:relative; height: 420px;">
+            <canvas id="activity-chart"></canvas>
             <div id="activity-tooltip" class="hidden" style="position:absolute; left:0; pointer-events:none; z-index:20;"></div>
         </div>
     </div>
@@ -1351,6 +1351,9 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
             data: { labels: hours, datasets },
             options: {
                 responsive: true,
+                // Fill the 420 px tall container on the dashboard
+                // instead of defaulting to the canvas aspect ratio.
+                maintainAspectRatio: false,
                 interaction: { mode: 'index', intersect: false },
                 plugins: {
                     legend: { display: false },
