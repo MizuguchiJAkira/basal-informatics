@@ -65,6 +65,11 @@
 
 <!-- Dashboard header — Strecker brand-token aligned (see strecker.css) -->
 <style>
+    /* Suppress default <details> disclosure triangle in Safari/Chrome.
+       The card's density block uses its own chevron SVG instead. */
+    details > summary { list-style: none; }
+    details > summary::-webkit-details-marker { display: none; }
+    details[open] > summary svg.transition-transform { transform: rotate(180deg); }
     .dash-eyebrow {
         font-family: "Oswald", "Archivo Narrow", sans-serif;
         font-size: 12px; letter-spacing: 0.22em; text-transform: uppercase;
@@ -1100,36 +1105,40 @@ Chart.Tooltip.positioners.belowChart = function(elements, eventPosition) {
                 const caveatList = (est.caveats || []).map(
                     c => `<li class="text-[11px] text-slate-500 dark:text-gray-400 leading-snug">${c}</li>`
                 ).join('');
+                const headlineHtml = hasDensity
+                    ? `<span class="text-xl font-extrabold" style="color:#d4b87a">${est.density_animals_per_km2.toFixed(2)}</span>
+                       <span class="text-[11px] text-slate-500 dark:text-gray-400">animals / km²</span>`
+                    : `<span class="text-sm text-slate-400 dark:text-gray-500">Not computed</span>`;
+                const detailBodyHtml = hasDensity
+                    ? `${barHtml}
+                       ${recBadge ? `<div class="mt-2">${recBadge}</div>` : ''}
+                       ${nCaveats ? `<ul class="mt-2 space-y-1 list-disc list-inside">${caveatList}</ul>` : ''}`
+                    : `<div class="text-xs text-slate-400 dark:text-gray-500">
+                           Detection rate ${(est.detection_rate_per_camera_day ?? 0).toFixed(3)} events/cam-day &mdash;
+                           insufficient data for REM density estimate.
+                       </div>
+                       ${recBadge ? `<div class="mt-2">${recBadge}</div>` : ''}
+                       ${nCaveats ? `<ul class="mt-2 space-y-1 list-disc list-inside">${caveatList}</ul>` : ''}`;
                 densityBlock = `
                     <div class="mt-4 pt-3" style="border-top: 1px solid rgba(244,241,234,0.08);">
-                        <div class="flex items-center justify-between mb-1">
-                            <div style="font-family: 'Oswald', sans-serif; font-size: 10px;
-                                        letter-spacing: 0.18em; text-transform: uppercase;
-                                        color: #d4b87a; font-weight: 500;">
-                                Density (REM)
-                            </div>
-                            ${recBadge}
-                        </div>
-                        ${hasDensity
-                            ? `<div class="flex items-baseline gap-2">
-                                   <span class="text-xl font-extrabold" style="color:#d4b87a">
-                                       ${est.density_animals_per_km2.toFixed(2)}
-                                   </span>
-                                   <span class="text-[11px] text-slate-500 dark:text-gray-400">animals / km²</span>
-                               </div>
-                               ${barHtml}`
-                            : `<div class="text-xs text-slate-400 dark:text-gray-500">
-                                   Density not computed &mdash;
-                                   rate ${(est.detection_rate_per_camera_day ?? 0).toFixed(3)} events/cam-day
-                               </div>`}
-                        ${nCaveats ? `
-                            <details class="mt-2">
-                                <summary class="cursor-pointer text-[11px] font-medium" style="color:#d4b87a">
-                                    ${nCaveats} caveat${nCaveats === 1 ? '' : 's'}
-                                </summary>
-                                <ul class="mt-1 space-y-1 list-disc list-inside">${caveatList}</ul>
-                            </details>
-                        ` : ''}
+                        <details onclick="event.stopPropagation()">
+                            <summary class="flex items-center justify-between cursor-pointer list-none">
+                                <div class="flex items-baseline gap-2 min-w-0">
+                                    <div style="font-family: 'Oswald', sans-serif; font-size: 10px;
+                                                letter-spacing: 0.18em; text-transform: uppercase;
+                                                color: #d4b87a; font-weight: 500;">
+                                        Density (REM)
+                                    </div>
+                                    ${headlineHtml}
+                                </div>
+                                <svg class="w-3.5 h-3.5 text-slate-400 flex-shrink-0 transition-transform"
+                                     style="transform-origin:center"
+                                     fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </summary>
+                            <div class="mt-2">${detailBodyHtml}</div>
+                        </details>
                     </div>
                 `;
             }
