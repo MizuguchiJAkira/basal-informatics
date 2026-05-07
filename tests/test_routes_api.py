@@ -51,10 +51,10 @@ def demo_client():
     with app.app_context():
         owner = User.query.filter_by(email="owner@basal.eco").first()
         assert owner is not None
-        lender = LenderClient.query.filter_by(slug="fcct").first()
+        lender = LenderClient.query.filter_by(slug="acme").first()
         if lender is None:
             lender = LenderClient(
-                name="Farm Credit of Central Texas", slug="fcct",
+                name="Acme Agricultural Credit", slug="acme",
                 state="TX", active=True)
             db.session.add(lender); db.session.commit()
         parcel = Property.query.filter_by(name="Route Test Parcel").first()
@@ -130,19 +130,19 @@ def test_lender_index_redirects_when_one_lender(demo_client):
 
 def test_lender_portfolio_happy_path(demo_client):
     _, c, _ = demo_client
-    r = c.get("/lender/fcct/")
+    r = c.get("/lender/acme/")
     assert r.status_code == 200
 
 
 def test_lender_parcel_report_happy_path(demo_client):
     _, c, pid = demo_client
-    r = c.get(f"/lender/fcct/parcel/{pid}")
+    r = c.get(f"/lender/acme/parcel/{pid}")
     assert r.status_code == 200
 
 
 def test_lender_parcel_exposure_json_happy_path(demo_client):
     _, c, pid = demo_client
-    r = c.get(f"/lender/api/fcct/parcel/{pid}/exposure")
+    r = c.get(f"/lender/api/acme/parcel/{pid}/exposure")
     assert r.status_code == 200
     j = r.get_json()
     assert "exposures" in j
@@ -151,7 +151,7 @@ def test_lender_parcel_exposure_json_happy_path(demo_client):
 
 def test_lender_parcel_upload_form_happy_path(demo_client):
     _, c, pid = demo_client
-    r = c.get(f"/lender/fcct/parcel/{pid}/upload")
+    r = c.get(f"/lender/acme/parcel/{pid}/upload")
     assert r.status_code == 200
 
 
@@ -175,15 +175,15 @@ def test_404_unknown_lender_slug(demo_client):
 
 def test_404_unknown_parcel_id(demo_client):
     _, c, _ = demo_client
-    r = c.get("/lender/fcct/parcel/999999")
+    r = c.get("/lender/acme/parcel/999999")
     assert r.status_code == 404
     assert b"Not found" in r.data
 
 
 def test_404_malformed_parcel_id(demo_client):
-    """/lender/fcct/parcel/not-an-int → Flask routing 404."""
+    """/lender/acme/parcel/not-an-int → Flask routing 404."""
     _, c, _ = demo_client
-    r = c.get("/lender/fcct/parcel/not-an-int")
+    r = c.get("/lender/acme/parcel/not-an-int")
     assert r.status_code == 404
 
 
@@ -200,7 +200,7 @@ def test_api_json_404_returns_json_error(demo_client):
     HTML branded 404 template (which would break any downstream
     Farm Credit importer)."""
     _, c, _ = demo_client
-    r = c.get("/lender/api/fcct/parcel/999999/exposure")
+    r = c.get("/lender/api/acme/parcel/999999/exposure")
     assert r.status_code == 404
     assert "json" in r.content_type.lower()
     body = r.get_json()
@@ -214,7 +214,7 @@ def test_api_json_404_returns_json_error(demo_client):
 def test_405_on_wrong_method(demo_client):
     """Portfolio route is GET-only; POST returns 405."""
     _, c, _ = demo_client
-    r = c.post("/lender/fcct/")
+    r = c.post("/lender/acme/")
     assert r.status_code == 405
 
 
@@ -234,7 +234,7 @@ def nondemo_client():
 
 def test_lender_portfolio_requires_login_nondemo(nondemo_client):
     """Without demo mode + no login session → redirect to /login."""
-    r = nondemo_client.get("/lender/fcct/", follow_redirects=False)
+    r = nondemo_client.get("/lender/acme/", follow_redirects=False)
     # @login_required redirects to login_view (auth.login)
     assert r.status_code in (302, 401)
     if r.status_code == 302:
@@ -242,7 +242,7 @@ def test_lender_portfolio_requires_login_nondemo(nondemo_client):
 
 
 def test_lender_api_requires_login_nondemo(nondemo_client):
-    r = nondemo_client.get("/lender/api/fcct/parcel/1/exposure",
+    r = nondemo_client.get("/lender/api/acme/parcel/1/exposure",
                            follow_redirects=False)
     assert r.status_code in (302, 401)
 

@@ -2,35 +2,120 @@
 {% block title %}Nature Exposure Report — {{ parcel.name }}{% endblock %}
 
 {% block content %}
+{# Nature Exposure Report — LIGHT-mode editorial treatment for institutional
+   audience (credit committees expect document-like light bg that matches
+   the PDF export). Fraunces serif display, Inter body, dark forest accents
+   (forest-deep #3d5945) for high contrast against white. #}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+
 <style>
-  .nx-report { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; }
+  /* Light-mode institutional report. All greens pulled to forest-deep
+     (#3d5945) instead of forest-lit (#82a58a) so the accent reads
+     clearly against the white body bg. */
+
+  /* Hide the marketing footer entirely on credit-committee report pages. */
+  body > footer { display: none !important; }
+
+  .nx-report {
+    font-family: "Inter", ui-sans-serif, system-ui, -apple-system, sans-serif;
+    color: #1a1816;  /* near-ink */
+  }
   .nx-report .mono {
-    font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-family: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
     font-variant-numeric: tabular-nums;
+    color: #1a1816;
   }
-  .nx-report .hr-thin { border-bottom: 1px solid #e2e8f0; }
-  html.dark .nx-report .hr-thin { border-color: #334155; }
+  .nx-report .hr-thin { border-bottom: 1px solid rgba(61, 89, 69, 0.22); }
+
+  /* Eyebrow — forest-DEEP (dark green) uppercase. Readable on white. */
+  .nx-eyebrow {
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.22em;
+    color: #3d5945;  /* --forest-deep */
+    font-weight: 600;
+    margin: 0 0 6px;
+  }
+
+  /* H1 — conservative document serif. No italic accents, no Fraunces
+     editorial flourish. This is a credit-committee artifact that sits
+     next to SEC filings and appraisal reports; the typography should
+     feel like those, not like a magazine cover. */
+  .nx-h1 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 38px; font-weight: 700; line-height: 1.1;
+    letter-spacing: -0.005em;
+    color: #1a1816;
+    margin: 2px 0 0;
+  }
+  .nx-h1 em {
+    /* Suppress the prior italic-last-word flourish. Render inline. */
+    font-style: normal;
+    color: inherit;
+    font-weight: inherit;
+  }
+
+  /* H2 — section heading */
+  .nx-h2 {
+    font-family: Georgia, "Times New Roman", Times, serif;
+    font-size: 18px; font-weight: 700; color: #1a1816;
+    letter-spacing: 0;
+  }
+  .nx-h2 em { font-style: normal; color: inherit; font-weight: inherit; }
+
+  /* Field labels */
   .nx-report .field-label {
-    font-size: 11px; text-transform: uppercase; letter-spacing: 0.05em;
-    color: #64748b; font-weight: 600;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 10px; text-transform: uppercase; letter-spacing: 0.2em;
+    color: #3d5945;  /* --forest-deep */
+    font-weight: 600;
   }
-  html.dark .nx-report .field-label { color: #94a3b8; }
   .nx-report .field-value {
-    font-size: 14px; color: #0f172a; margin-top: 2px;
+    font-family: "Inter", system-ui, sans-serif;
+    font-size: 14px; color: #1a1816;
+    margin-top: 4px;
+    font-weight: 400;
   }
-  html.dark .nx-report .field-value { color: #e2e8f0; }
+
+  /* Backlink */
+  .nx-backlink {
+    font-family: "Inter", sans-serif;
+    font-size: 13px; color: #3d5945; text-decoration: none;
+    letter-spacing: 0.01em;
+    font-weight: 500;
+  }
+  .nx-backlink:hover { color: #1a1816; text-decoration: underline; }
+
+  /* Primary CTA — forest-deep filled button */
+  .nx-cta {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 9px 18px; border-radius: 3px;
+    background: #3d5945;  /* --forest-deep */
+    color: #f4f1ea;
+    font-family: "Inter", sans-serif;
+    font-size: 12px; font-weight: 500;
+    letter-spacing: 0.04em;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+  .nx-cta:hover { background: #5d7e63; color: #f4f1ea; text-decoration: none; }
 
   .tier-badge {
-    display: inline-block; padding: 4px 14px; border-radius: 4px;
-    font-size: 12px; font-weight: 700; text-transform: uppercase;
-    letter-spacing: 0.05em; white-space: nowrap;
+    display: inline-block; padding: 5px 14px; border-radius: 3px;
+    font-size: 11px; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.14em; white-space: nowrap;
+    font-family: "Inter", sans-serif;
   }
-  .tier-Low      { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-  .tier-Moderate { background: #fefce8; color: #854d0e; border: 1px solid #fde68a; }
-  .tier-Elevated { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
-  .tier-Severe   { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  /* Functional tier colors retained — saturated enough to signal, soft
+     enough to stay editorial. */
+  .tier-Low      { background: #e8f0e9; color: #2b4432; border: 1px solid #b8cdc0; }
+  .tier-Moderate { background: #f6efe0; color: #6a4c18; border: 1px solid #e1cfa6; }
+  .tier-Elevated { background: #f3e4d0; color: #7a3e18; border: 1px solid #d8b896; }
+  .tier-Severe   { background: #efd6ce; color: #7d2818; border: 1px solid #d19a86; }
   .tier-Informational, .tier-Unknown {
-    background: #f1f5f9; color: #334155; border: 1px solid #e2e8f0;
+    background: #ebe8e1; color: #3f3b35; border: 1px solid #c7c0b3;
   }
   html.dark .tier-Low      { background: #064e3b33; color: #6ee7b7; border-color: #065f46; }
   html.dark .tier-Moderate { background: #78350f33; color: #fcd34d; border-color: #854d0e; }
@@ -93,16 +178,16 @@
 
 <div class="nx-report">
 
-  <!-- Report header -->
-  <div class="mb-6">
-    <div class="flex items-center justify-between mb-2">
+  <!-- Report header — Basal editorial (Fraunces display, forest accents) -->
+  <div class="mb-8">
+    <div class="flex items-center justify-between mb-4">
       <a href="{{ url_for('lender.portfolio', lender_slug=lender.slug) }}"
-         class="text-sm text-teal-600 dark:text-teal-400 hover:underline">
+         class="nx-backlink">
         &larr; {{ lender.name }} portfolio
       </a>
-      <div class="flex items-center gap-3">
+      <div class="flex items-center gap-4">
         <a href="{{ url_for('lender.parcel_upload_form', lender_slug=lender.slug, parcel_id=parcel.id) }}"
-           class="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded bg-teal-600 hover:bg-teal-700 text-white transition">
+           class="nx-cta">
           <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"/>
           </svg>
@@ -113,11 +198,10 @@
         </div>
       </div>
     </div>
-    <div class="text-xs uppercase tracking-widest text-slate-500 dark:text-gray-400 mb-1">
-      Nature Exposure Report
-    </div>
-    <h1 class="text-3xl font-bold text-slate-900 dark:text-white">{{ parcel.name }}</h1>
-    <div class="text-sm mono text-slate-500 dark:text-gray-400 mt-1">
+    <div class="nx-eyebrow">Nature Exposure Report</div>
+    <h1 class="nx-h1">{{ parcel.name }}</h1>
+    <div class="text-sm mono text-slate-500 dark:text-gray-400 mt-2"
+         style="color: rgba(93, 126, 99, 0.75); letter-spacing: 0.04em;">
       Parcel {{ parcel.parcel_id }}
     </div>
   </div>
@@ -126,22 +210,123 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
+  {# Trend & comparison badges — answer the two questions a loan
+     officer asks: is this parcel getting worse, and is it worse than
+     the rest of the book? Sits just above the exec summary so the
+     framing arrives before the headline number. #}
+  {% if season_delta or portfolio_pct %}
+  <div class="mb-4" style="display: flex; flex-wrap: wrap; gap: 10px;
+                            font-family: 'Inter', sans-serif;">
+    {% if season_delta %}
+      {% set up = season_delta.pct > 0 %}
+      {% set flat = (season_delta.pct|abs) < 1.0 %}
+      <div style="display: inline-flex; align-items: baseline; gap: 8px;
+                  padding: 7px 12px; border: 1px solid rgba(61, 89, 69, 0.22);
+                  background: rgba(130, 165, 138, 0.04);">
+        <span style="font-size: 10px; letter-spacing: 0.18em;
+                     text-transform: uppercase; color: #3d5945;">
+          Trend
+        </span>
+        <span style="font-weight: 600; font-size: 13px;
+                     color: {% if flat %}#1a1816{% elif up %}#7d2818{% else %}#2b4432{% endif %};">
+          {% if flat %}–{% elif up %}↑{% else %}↓{% endif %}
+          {{ '%.0f'|format(season_delta.pct|abs) }}%
+        </span>
+        <span style="font-size: 12px; color: rgba(26, 24, 22, 0.65);">
+          vs {{ season_delta.prior_season }}
+        </span>
+      </div>
+    {% endif %}
+    {% if portfolio_pct %}
+      {% set high = portfolio_pct.pct >= 50 %}
+      <div style="display: inline-flex; align-items: baseline; gap: 8px;
+                  padding: 7px 12px; border: 1px solid rgba(61, 89, 69, 0.22);
+                  background: rgba(130, 165, 138, 0.04);">
+        <span style="font-size: 10px; letter-spacing: 0.18em;
+                     text-transform: uppercase; color: #3d5945;">
+          Portfolio rank
+        </span>
+        <span style="font-weight: 600; font-size: 13px;
+                     color: {% if high %}#7d2818{% else %}#2b4432{% endif %};">
+          {{ portfolio_pct.pct }}{{ {1:'st',2:'nd',3:'rd'}.get(portfolio_pct.pct % 10 if portfolio_pct.pct % 100 not in (11,12,13) else 0, 'th') }} pct
+        </span>
+        <span style="font-size: 12px; color: rgba(26, 24, 22, 0.65);">
+          of {{ portfolio_pct.n_peers + 1 }} parcels in {{ portfolio_pct.lender_name }}
+        </span>
+      </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
   {# Executive summary — one-glance finding block at the very top so
      a loan-review committee member can close the report after reading
      this without scrolling further. Mirrors executive_summary.py. #}
   {% if exec_summary and exec_summary.headline %}
-  <div class="mb-6 p-4 border-l-4 border-teal-500 bg-teal-50/40 dark:bg-teal-900/10 rounded-r">
-    <div class="text-[11px] uppercase tracking-widest text-teal-700 dark:text-teal-300 mb-1">
-      Executive summary
-    </div>
-    <div class="text-sm text-slate-800 dark:text-gray-100 font-medium">
+  <div class="mb-8 pl-5 pr-4 py-4"
+       style="border-left: 3px solid #5d7e63;
+              background: rgba(130, 165, 138, 0.06);">
+    <div class="nx-eyebrow" style="margin-bottom: 8px;">Executive summary</div>
+    <div style="font-family: Georgia, 'Times New Roman', Times, serif;
+                font-size: 16px; font-weight: 400; line-height: 1.45;
+                color: #1a1816;">
       {{ exec_summary.headline }}
     </div>
     {% if exec_summary.bullets %}
-    <ul class="mt-2 space-y-1 text-[13px] text-slate-600 dark:text-gray-300 list-disc list-inside">
-      {% for b in exec_summary.bullets %}<li>{{ b }}</li>{% endfor %}
+    <ul style="margin-top: 12px; padding-left: 18px; font-size: 13.5px;
+               color: #4a4841; line-height: 1.55; list-style-type: disc;">
+      {% for b in exec_summary.bullets %}<li style="margin-bottom: 4px;">{{ b }}</li>{% endfor %}
     </ul>
     {% endif %}
+  </div>
+  {% endif %}
+
+  {# Data confidence — surfaced directly after the executive summary so a
+     committee reader can size up "can I trust this finding?" before
+     reading the detail below. Styled to match the editorial report
+     palette (forest/bone/ink) rather than Tailwind emerald/teal/amber/
+     rose. Mirrors confidence.py PDF section. #}
+  {% if confidence %}
+  <div class="mb-8" style="border: 1px solid rgba(61, 89, 69, 0.22); padding: 0;">
+    <div style="padding: 12px 20px 10px; border-bottom: 1px solid rgba(61, 89, 69, 0.18);">
+      <span class="nx-eyebrow" style="margin: 0;">Data confidence</span>
+    </div>
+    <div style="display: flex; align-items: stretch;">
+      <div style="display: flex; flex-direction: column; align-items: center;
+                  justify-content: center; min-width: 96px; padding: 14px 16px;
+                  border-right: 1px solid rgba(61, 89, 69, 0.18);">
+        <div style="font-family: Georgia, 'Times New Roman', Times, serif;
+                    font-size: 52px; font-weight: 700; line-height: 1;
+                    color: #1a1816;">{{ confidence.grade }}</div>
+        <div style="font-family: 'Inter', sans-serif; font-size: 10px;
+                    letter-spacing: 0.18em; text-transform: uppercase;
+                    color: #3d5945; margin-top: 8px;">
+          {{ confidence.score }} / {{ confidence.max }}
+        </div>
+      </div>
+      <div style="flex: 1; padding: 8px 16px;">
+        <table style="width: 100%; font-family: 'Inter', sans-serif;
+                      font-size: 12.5px; color: #1a1816;">
+          <tbody>
+            {% for r in confidence.rows %}
+            <tr style="border-bottom: 1px solid rgba(61, 89, 69, 0.09);">
+              <td style="padding: 5px 10px 5px 0; width: 200px; font-weight: 500;">
+                {{ r.label }}
+              </td>
+              <td style="padding: 5px 10px; width: 14px; text-align: center;
+                         font-weight: 700;
+                         color: {% if r.score == 2 %}#2b4432{% elif r.score == 1 %}#7a5a20{% else %}#7d2818{% endif %};">
+                {{ r.mark }}
+              </td>
+              <td style="padding: 5px 0; color: rgba(26, 24, 22, 0.70);
+                         font-size: 12px; line-height: 1.4;">
+                {{ r.detail }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
   </div>
   {% endif %}
 
@@ -167,7 +352,15 @@
     </div>
     <div>
       <div class="field-label">Cameras</div>
-      <div class="field-value mono">{{ stats.n_cameras }}</div>
+      {% set _nbr_count = (neighbor_cams_json | length) if neighbor_cams_json else 0 %}
+      <div class="field-value mono">{{ stats.n_cameras + _nbr_count }}</div>
+      {% if _nbr_count > 0 %}
+      <div style="font-family: 'Inter', sans-serif; font-size: 10.5px;
+                  letter-spacing: 0.04em; color: rgba(93, 126, 99, 0.80);
+                  margin-top: 2px;">
+        {{ stats.n_cameras }} on-parcel · {{ _nbr_count }} supp.
+      </div>
+      {% endif %}
     </div>
     <div>
       <div class="field-label">Survey period</div>
@@ -186,28 +379,80 @@
   {% if parcel.boundary_geojson %}
   <div class="mb-8">
     <div class="flex items-end justify-between mb-2">
-      <h2 class="text-lg font-semibold text-slate-800 dark:text-gray-100">
-        Parcel map &amp; camera layout
-      </h2>
-      <div class="text-[11px] text-slate-500 dark:text-gray-400 flex gap-3 flex-wrap">
-        <span class="inline-flex items-center gap-1">
-          <span class="inline-block w-2 h-2 rounded-full" style="background:#0d9488"></span> random
-        </span>
-        <span class="inline-flex items-center gap-1">
-          <span class="inline-block w-2 h-2 rounded-full" style="background:#dc2626"></span> feeder
-        </span>
-        <span class="inline-flex items-center gap-1">
-          <span class="inline-block w-2 h-2 rounded-full" style="background:#ea580c"></span> trail
-        </span>
-        <span class="inline-flex items-center gap-1">
-          <span class="inline-block w-2 h-2 rounded-full" style="background:#2563eb"></span> water
-        </span>
-        <span class="inline-flex items-center gap-1">
-          <span class="inline-block w-2 h-2 rounded-full" style="background:#9333ea"></span> food_plot
-        </span>
-        <span class="inline-flex items-center gap-1">
-          <span class="inline-block w-2 h-2 rounded-full ring-1 ring-slate-400" style="background:transparent"></span> neighbor
-        </span>
+      <h2 class="nx-h2">Parcel map &amp; camera layout</h2>
+      {# Map legend — uniform dot markers. Placement context + deployment
+         date live in the on-map dashboard panel, not in the pin shape,
+         so the map stays clean at any zoom. #}
+      <style>
+        .nx-legend {
+          display: flex; gap: 16px; flex-wrap: wrap;
+          font-family: 'Inter', sans-serif; font-size: 10px;
+          text-transform: uppercase; letter-spacing: 0.14em;
+          color: #3d5945; font-weight: 500;
+          align-items: center;
+        }
+        .nx-legend svg { vertical-align: middle; margin-right: 6px; }
+
+        /* Strip Leaflet's default divIcon chrome (white bg + border) */
+        .nx-cam-marker,
+        .leaflet-div-icon.nx-cam-marker {
+          background: transparent !important;
+          border: none !important;
+          padding: 0 !important;
+        }
+        .nx-cam-marker svg { display: block; }
+
+        /* On-map dashboard panel (camera inventory table) */
+        .nx-cam-panel {
+          background: rgba(244, 241, 234, 0.96);
+          border: 1px solid rgba(61, 89, 69, 0.35);
+          box-shadow: 0 1px 3px rgba(0, 0, 0, 0.14);
+          font-family: 'Inter', sans-serif;
+          color: #1a1816;
+          width: 300px; max-height: 320px;
+          overflow: hidden;
+          display: flex; flex-direction: column;
+        }
+        .nx-cam-panel-head {
+          padding: 10px 12px 8px;
+          border-bottom: 1px solid rgba(61, 89, 69, 0.22);
+          font-size: 10px; letter-spacing: 0.22em; text-transform: uppercase;
+          color: #3d5945; font-weight: 600;
+        }
+        .nx-cam-panel-body {
+          overflow-y: auto;
+          padding: 4px 0;
+        }
+        .nx-cam-row {
+          display: grid;
+          grid-template-columns: 1fr auto;
+          gap: 2px 8px;
+          padding: 7px 12px;
+          border-bottom: 1px solid rgba(61, 89, 69, 0.10);
+          font-size: 11px;
+        }
+        .nx-cam-row:last-child { border-bottom: none; }
+        .nx-cam-label {
+          font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+          font-size: 11px; font-weight: 500; color: #1a1816;
+          letter-spacing: 0.01em;
+        }
+        .nx-cam-ctx {
+          font-size: 9px; letter-spacing: 0.16em; text-transform: uppercase;
+          color: #3d5945; font-weight: 500;
+          align-self: center; justify-self: end;
+        }
+        .nx-cam-ctx.neighbor { color: rgba(61, 89, 69, 0.65); font-style: italic; }
+        .nx-cam-meta {
+          grid-column: 1 / -1;
+          font-family: ui-monospace, 'SF Mono', Menlo, monospace;
+          font-size: 10px; color: rgba(26, 24, 22, 0.55);
+          letter-spacing: 0.02em;
+        }
+      </style>
+      <div class="nx-legend">
+        <span><svg viewBox="0 0 14 14" width="14" height="14"><circle cx="7" cy="7" r="4.5" fill="#3d5945" stroke="#f4f1ea" stroke-width="1.4"/></svg>on-parcel</span>
+        <span><svg viewBox="0 0 14 14" width="14" height="14"><circle cx="7" cy="7" r="4.5" fill="#f4f1ea" stroke="#3d5945" stroke-width="1.4" stroke-dasharray="3,2"/></svg>supplementary (neighbor)</span>
       </div>
     </div>
     <div id="parcel-map" style="height: 360px;"
@@ -235,45 +480,100 @@
       attribution: '&copy; OpenStreetMap contributors',
     }).addTo(map);
 
+    // Boundary — dashed dark line, typical property-line convention
+    // on surveyor maps.
     var boundaryLayer = L.geoJSON(boundary, {
-      style: { color: '#0f172a', weight: 2, fillColor: '#0f172a',
-               fillOpacity: 0.06 },
+      style: { color: '#1a1816', weight: 1.5,
+               dashArray: '5,3',
+               fillColor: '#1a1816', fillOpacity: 0.025 },
     }).addTo(map);
     map.fitBounds(boundaryLayer.getBounds(), { padding: [20, 20] });
 
-    var ctxColor = {
-      random:    '#0d9488',
-      feeder:    '#dc2626',
-      trail:     '#ea580c',
-      water:     '#2563eb',
-      food_plot: '#9333ea',
-      other:     '#64748b',
-      unknown:   '#64748b',
-    };
+    // Uniform camera markers. Shape-per-context was cluttering the map;
+    // instead the on-parcel dot is one symbol, neighbors are a hollow
+    // dashed variant, and all metadata (type / coords / deployed) is
+    // surfaced in the map-overlay panel below. Click a marker to scroll
+    // the panel to that row.
+    var FILL = '#3d5945';        // forest-deep
+    var BONE = '#f4f1ea';        // bone
+    var ON_PARCEL_SVG =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 14"'+
+      ' width="14" height="14" style="display:block;'+
+      ' filter: drop-shadow(0 1px 1.5px rgba(0,0,0,0.40));">'+
+      '<circle cx="7" cy="7" r="4.5" fill="'+FILL+'" stroke="'+BONE+
+      '" stroke-width="1.4"/></svg>';
+    var NEIGHBOR_SVG =
+      '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 14 14"'+
+      ' width="14" height="14" style="display:block;">'+
+      '<circle cx="7" cy="7" r="4.5" fill="'+BONE+
+      '" fill-opacity="0.85" stroke="'+FILL+
+      '" stroke-width="1.4" stroke-dasharray="3,2"/></svg>';
+    function makeIcon(html) {
+      return L.divIcon({
+        className: 'nx-cam-marker',
+        html: html,
+        iconSize: [14, 14],
+        iconAnchor: [7, 7],
+      });
+    }
+
+    function fmtDeployed(iso) {
+      if (!iso) return '—';
+      // "2026-02-01" -> "2026-02-01" (already ISO); keep as-is for
+      // monospace alignment. Could also do "Feb 1, 2026" but monospace
+      // looks more like a field log.
+      return iso;
+    }
+    function fmtCoords(lat, lon) {
+      if (lat == null || lon == null) return '—';
+      return lat.toFixed(4) + ', ' + lon.toFixed(4);
+    }
+
     onParcelCams.forEach(function(c){
-      var color = ctxColor[(c.placement_context || 'unknown').toLowerCase()] || '#64748b';
-      L.circleMarker([c.lat, c.lon], {
-        radius: 7, color: '#fff', weight: 2,
-        fillColor: color, fillOpacity: 0.95,
-      }).bindPopup(
-        '<div style="font-size:12px">'+
-          '<strong>'+(c.label||'')+'</strong><br>'+
-          (c.name||'')+'<br>'+
-          '<span style="color:#64748b">'+(c.placement_context||'unknown')+'</span>'+
-        '</div>'
-      ).addTo(map);
+      c._marker = L.marker([c.lat, c.lon], { icon: makeIcon(ON_PARCEL_SVG) })
+        .addTo(map);
     });
     neighborCams.forEach(function(c){
-      L.circleMarker([c.lat, c.lon], {
-        radius: 6, color: '#64748b', weight: 1.5,
-        fillColor: 'transparent', fillOpacity: 0, dashArray: '2,2',
-      }).bindPopup(
-        '<div style="font-size:12px">'+
-          '<strong>'+(c.label||'neighbor')+'</strong><br>'+
-          'Neighboring lease · '+(c.distance_km||'?').toFixed(2)+' km'+
-        '</div>'
-      ).addTo(map);
+      c._marker = L.marker([c.lat, c.lon], { icon: makeIcon(NEIGHBOR_SVG) })
+        .addTo(map);
     });
+
+    // ── On-map camera dashboard panel ──────────────────────────────
+    var CameraPanel = L.Control.extend({
+      options: { position: 'topright' },
+      onAdd: function() {
+        var div = L.DomUtil.create('div', 'nx-cam-panel');
+        // Prevent map drag/scroll when interacting with the panel.
+        L.DomEvent.disableClickPropagation(div);
+        L.DomEvent.disableScrollPropagation(div);
+
+        var total = onParcelCams.length + neighborCams.length;
+        var html = '<div class="nx-cam-panel-head">'+
+                   'Camera inventory — ' + total + '</div>'+
+                   '<div class="nx-cam-panel-body">';
+
+        function renderRow(c, isNeighbor) {
+          var ctx = (c.placement_context || 'unknown').replace('_', ' ');
+          return '<div class="nx-cam-row" data-label="'+c.label+'">'+
+                   '<span class="nx-cam-label">'+c.label+'</span>'+
+                   '<span class="nx-cam-ctx'+(isNeighbor ? ' neighbor' : '')+'">'+
+                     ctx + (isNeighbor ? ' · nbr' : '') +
+                   '</span>'+
+                   '<span class="nx-cam-meta">'+
+                     fmtCoords(c.lat, c.lon) +
+                     ' · dep ' + fmtDeployed(c.installed_date) +
+                   '</span>'+
+                 '</div>';
+        }
+
+        onParcelCams.forEach(function(c){ html += renderRow(c, false); });
+        neighborCams.forEach(function(c){ html += renderRow(c, true); });
+        html += '</div>';
+        div.innerHTML = html;
+        return div;
+      },
+    });
+    new CameraPanel().addTo(map);
   })();
   </script>
   {% endif %}
@@ -502,6 +802,311 @@
   </div>
   {% endif %}
 
+  {# ── Stage 7: Texas Ag Valuation Risk ────────────────────────────────
+     Renders only when valuation_risk is populated. Legacy parcels (no
+     CAD adapter for their county) pass None → block skipped. Feature
+     flag enforced upstream in the route, so this whole subtree is
+     gated by the FEATURE_VALUATION_RISK config. #}
+  {% if valuation_risk %}
+    {% set vr = valuation_risk %}
+    {% set band_colors = {
+        'low':      ('#2b4432', 'rgba(43,68,50,0.10)'),
+        'moderate': ('#7a5a20', 'rgba(122,90,32,0.10)'),
+        'elevated': ('#a8651b', 'rgba(168,101,27,0.10)'),
+        'high':     ('#7d2818', 'rgba(125,40,24,0.10)'),
+    } %}
+    {% set classification_labels = {
+        'ag_open_space':       '1-d-1 (open-space agricultural)',
+        'wildlife_open_space': '1-d-1(w) (wildlife)',
+        'timber':              'Timber (§23.71)',
+        'market':              'Market value',
+        'unknown':             'Unknown',
+    } %}
+    {% set effective_band = vr.risk_score.effective_band %}
+    {% set band_fg, band_bg = band_colors.get(effective_band, ('#1a1816', 'rgba(26,24,22,0.06)')) %}
+
+  <div class="mb-8 p-6 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800">
+    <div class="flex items-baseline justify-between gap-4 flex-wrap mb-1">
+      <h2 class="text-lg font-semibold text-slate-800 dark:text-gray-100">
+        Texas Ag Valuation Risk
+      </h2>
+      <span class="text-[11px] mono text-slate-400 dark:text-gray-500">
+        {{ vr.current_valuation.data_source }}
+      </span>
+    </div>
+
+    <div class="text-sm text-slate-600 dark:text-gray-300 mb-4">
+      Current classification:
+      <strong>{{ classification_labels.get(vr.current_valuation.classification, vr.current_valuation.classification) }}</strong>
+      &middot; as of {{ vr.current_valuation.as_of_date }}.
+      Indicative risk band on a 24-month horizon:
+      <span style="display: inline-flex; align-items: baseline; gap: 6px;
+                   padding: 2px 10px; border-radius: 3px; font-weight: 600;
+                   color: {{ band_fg }}; background: {{ band_bg }};
+                   text-transform: uppercase; letter-spacing: 0.04em;
+                   font-size: 12px;">
+        {{ effective_band }}
+      </span>
+      {% if vr.human_feedback.underwriter_override %}
+        <span class="ml-2 text-[11px] italic text-slate-500 dark:text-gray-400">
+          (underwriter override on file)
+        </span>
+      {% endif %}
+    </div>
+
+    {# Drivers — every factor in the rubric, triggered or not. #}
+    <div class="mb-5">
+      <div class="field-label mb-2">Drivers identified</div>
+      <table class="w-full text-sm" style="border-collapse: collapse;">
+        <thead>
+          <tr class="text-left text-[11px] uppercase tracking-wide text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
+            <th class="py-2 pr-3 font-semibold" style="width: 28%;">Driver</th>
+            <th class="py-2 pr-3 font-semibold" style="width: 6%;">W.</th>
+            <th class="py-2 pr-3 font-semibold" style="width: 6%;"></th>
+            <th class="py-2 font-semibold">Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for d in vr.risk_score.drivers %}
+          <tr class="align-top border-b border-slate-100 dark:border-gray-800">
+            <td class="py-2 pr-3 text-slate-800 dark:text-gray-100">
+              {{ d.factor.replace('_', ' ').title() }}
+            </td>
+            <td class="py-2 pr-3 mono text-slate-500 dark:text-gray-400">
+              {{ "%.2f"|format(d.weight) }}
+            </td>
+            <td class="py-2 pr-3 mono text-center"
+                style="color: {% if d.triggered %}#7d2818{% else %}#9ca3af{% endif %}; font-weight: 600;">
+              {% if d.triggered %}✓{% else %}—{% endif %}
+            </td>
+            <td class="py-2 text-slate-600 dark:text-gray-300 leading-snug">
+              {{ d.evidence }}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    {# Exposure — collateral delta if special-use appraisal lost. #}
+    <div class="mb-5 pt-4 hr-thin">
+      <div class="field-label mb-1">
+        Collateral exposure if 1-d-1{% if vr.current_valuation.classification == 'wildlife_open_space' %}(w){% endif %} is lost
+      </div>
+      {% if vr.exposure_if_lost.collateral_value_delta_dollars is not none %}
+        {% set delta = vr.exposure_if_lost.collateral_value_delta_dollars %}
+        <div class="flex items-baseline gap-3 flex-wrap">
+          <span class="text-3xl font-bold text-slate-900 dark:text-white mono">
+            −${{ "{:,.0f}".format(delta|abs) }}
+          </span>
+          <span class="text-xs text-slate-500 dark:text-gray-400">
+            {{ vr.exposure_if_lost.method.replace('_', ' ') }}
+            &middot; {{ vr.exposure_if_lost.confidence }} confidence
+          </span>
+        </div>
+        <div class="text-xs text-slate-500 dark:text-gray-400 mt-1 leading-snug">
+          Assessed-to-market reset on stated parcel acreage. Asset-side
+          impact only; cash-side impact (§23.55 rollback) shown below.
+        </div>
+        {% if vr.exposure_if_lost.rollback_tax_estimated_dollars is not none %}
+          {% set rb = vr.exposure_if_lost.rollback_tax_estimated_dollars %}
+          <div class="mt-3 pt-3 hr-thin">
+            <div class="field-label mb-1">
+              Estimated §23.55 rollback liability
+            </div>
+            {% if rb > 0 %}
+              <div class="flex items-baseline gap-3 flex-wrap">
+                <span class="text-xl font-bold text-slate-900 dark:text-white mono">
+                  ${{ "{:,.0f}".format(rb) }}
+                </span>
+                <span class="text-xs text-slate-500 dark:text-gray-400 mono">
+                  {{ vr.exposure_if_lost.rollback_tax_years }} years
+                  &middot; 5% simple interest
+                  &middot; {{ "%.1f"|format(vr.exposure_if_lost.rollback_tax_assumed_rate * 100) }}% effective tax rate
+                </span>
+              </div>
+              <div class="text-xs text-slate-500 dark:text-gray-400 mt-1 leading-snug">
+                Cash impact at conversion. Estimate uses Texas-average
+                effective property tax rate; actual liability depends on
+                the parcel's combined school/county/city rates and the
+                CAD's §23.55(g) determination of the change-in-use event.
+              </div>
+            {% else %}
+              <div class="text-sm text-slate-500 dark:text-gray-400">
+                None — assessed and market values match (no rollback gap).
+              </div>
+            {% endif %}
+          </div>
+        {% endif %}
+      {% else %}
+        <div class="text-sm text-slate-500 dark:text-gray-400">
+          Not estimable from the available CAD snapshot.
+        </div>
+      {% endif %}
+    </div>
+
+    {# Remediation — describe pathway, never recommend filing. #}
+    <div class="mb-3 pt-4 hr-thin">
+      <div class="field-label mb-2">1-d-1(w) conversion pathway</div>
+      {% set qualifying_count = vr.remediation.qualifying_practices_evidence|length %}
+      <div class="text-sm text-slate-700 dark:text-gray-200 mb-3">
+        {% if vr.remediation.wildlife_conversion_viable %}
+          Qualifying-practice evidence is present for
+          <strong>{{ qualifying_count }} of seven</strong> TPWD practices in
+          the {{ vr.remediation.ecoregion.replace('_', ' ') }} ecoregion
+          (3 required). Specific intensity standards and filing windows
+          are not addressed by this section.
+        {% else %}
+          Qualifying-practice evidence is present for only
+          <strong>{{ qualifying_count }} of seven</strong> TPWD practices
+          (3 required). Pathway not viable on current parcel use.
+        {% endif %}
+      </div>
+      <table class="w-full text-sm" style="border-collapse: collapse;">
+        <thead>
+          <tr class="text-left text-[11px] uppercase tracking-wide text-slate-500 dark:text-gray-400 border-b border-slate-200 dark:border-gray-700">
+            <th class="py-2 pr-3 font-semibold" style="width: 28%;">Practice</th>
+            <th class="py-2 pr-3 font-semibold" style="width: 16%;">Status</th>
+            <th class="py-2 font-semibold">Evidence</th>
+          </tr>
+        </thead>
+        <tbody>
+        {% for p in vr.remediation.practices %}
+          {% set status_color = {
+              'qualifies':        '#2b4432',
+              'does_not_qualify': '#7d2818',
+              'not_evaluated':    '#6b7280',
+          }.get(p.status, '#6b7280') %}
+          <tr class="align-top border-b border-slate-100 dark:border-gray-800">
+            <td class="py-2 pr-3 text-slate-800 dark:text-gray-100">
+              {{ p.label }}
+            </td>
+            <td class="py-2 pr-3 text-xs uppercase tracking-wide"
+                style="color: {{ status_color }}; font-weight: 600; letter-spacing: 0.04em;">
+              {{ p.status.replace('_', ' ') }}
+            </td>
+            <td class="py-2 text-slate-600 dark:text-gray-300 leading-snug">
+              {{ p.evidence }}
+            </td>
+          </tr>
+        {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="text-[11px] text-slate-500 dark:text-gray-400 mt-4 leading-relaxed">
+      Indicative risk band — not a probability or forecast. Texas 1-d-1
+      and 1-d-1(w) only; homestead, over-65, disabled-veteran, and
+      timber valuations are out of scope. This section describes risk
+      and remediation pathway; it does not recommend filing actions.
+      {% if vr.human_feedback.underwriter_override %}
+        <br><em>Underwriter override on file: band recorded as
+        <strong>{{ vr.human_feedback.underwriter_override|upper }}</strong>.
+        {{ vr.human_feedback.underwriter_notes or '' }}</em>
+      {% endif %}
+    </div>
+
+    {# Underwriter override panel — only shown to is_owner users (the
+       lender-side staff who would write an override). v1 lender pilot
+       won't have multi-user roles; treating is_owner as "lender admin"
+       is consistent with the rest of the basal app. Hidden by default;
+       a small "underwriter override" toggle reveals it. #}
+    {% if current_user.is_authenticated and current_user.is_owner %}
+    <details class="mt-3 text-[12px] text-slate-600 dark:text-gray-300 group">
+      <summary class="cursor-pointer text-slate-500 hover:text-slate-700 select-none">
+        Underwriter override
+        {% if vr.human_feedback.underwriter_override %}
+          &middot; <span class="font-semibold">{{ vr.human_feedback.underwriter_override }}</span> set
+        {% endif %}
+      </summary>
+      <div class="mt-3 p-3 border border-slate-200 dark:border-gray-700 rounded bg-slate-50 dark:bg-gray-900">
+        <div class="text-[11px] text-slate-500 dark:text-gray-400 mb-2 leading-snug">
+          Override the indicative band for this parcel. The computed
+          band remains visible in the audit trail; the effective band
+          shown above and in downstream views uses the override.
+        </div>
+        <form id="vr-override-form-{{ parcel.id }}"
+              data-parcel-id="{{ parcel.id }}"
+              class="flex flex-col gap-2">
+          <div class="flex items-center gap-2 flex-wrap">
+            <label class="text-[11px] uppercase tracking-wide text-slate-500">Band:</label>
+            <select name="band" class="text-sm border border-slate-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800">
+              <option value="" disabled {% if not vr.human_feedback.underwriter_override %}selected{% endif %}>—</option>
+              <option value="low"      {% if vr.human_feedback.underwriter_override == 'low' %}selected{% endif %}>low</option>
+              <option value="moderate" {% if vr.human_feedback.underwriter_override == 'moderate' %}selected{% endif %}>moderate</option>
+              <option value="elevated" {% if vr.human_feedback.underwriter_override == 'elevated' %}selected{% endif %}>elevated</option>
+              <option value="high"     {% if vr.human_feedback.underwriter_override == 'high' %}selected{% endif %}>high</option>
+            </select>
+          </div>
+          <textarea name="notes" rows="2"
+                    placeholder="Notes (visible in the report footer)"
+                    class="text-sm border border-slate-300 dark:border-gray-600 rounded px-2 py-1 bg-white dark:bg-gray-800 leading-snug"
+                    >{{ vr.human_feedback.underwriter_notes or '' }}</textarea>
+          <div class="flex items-center gap-3">
+            <button type="submit"
+                    class="text-xs uppercase tracking-wide px-3 py-1.5 rounded bg-slate-800 text-white hover:bg-slate-700">
+              Save override
+            </button>
+            {% if vr.human_feedback.underwriter_override %}
+            <button type="button"
+                    data-clear="1"
+                    class="text-xs uppercase tracking-wide px-3 py-1.5 rounded border border-slate-300 dark:border-gray-600 text-slate-600 dark:text-gray-300 hover:bg-slate-100 dark:hover:bg-gray-800">
+              Clear override
+            </button>
+            {% endif %}
+            <span id="vr-override-status-{{ parcel.id }}" class="text-[11px] text-slate-500"></span>
+          </div>
+        </form>
+      </div>
+    </details>
+    <script>
+      (function () {
+        var form = document.getElementById('vr-override-form-{{ parcel.id }}');
+        if (!form) return;
+        var pid = form.dataset.parcelId;
+        var status = document.getElementById('vr-override-status-' + pid);
+        var url = '/lender/api/{{ lender.slug }}/parcel/' + pid + '/valuation/override';
+        function send(body) {
+          status.textContent = 'Saving…';
+          fetch(url, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(body),
+            credentials: 'same-origin'
+          })
+          .then(function (r) { return r.json().then(function (d) { return [r.ok, d]; }); })
+          .then(function (pair) {
+            if (!pair[0]) {
+              status.textContent = 'Error: ' + (pair[1].error || 'request failed');
+              return;
+            }
+            status.textContent = 'Saved. Reloading…';
+            setTimeout(function () { window.location.reload(); }, 400);
+          })
+          .catch(function (e) {
+            status.textContent = 'Network error.';
+          });
+        }
+        form.addEventListener('submit', function (e) {
+          e.preventDefault();
+          var fd = new FormData(form);
+          var band = fd.get('band');
+          if (!band) {
+            status.textContent = 'Pick a band first.';
+            return;
+          }
+          send({band: band, notes: fd.get('notes')});
+        });
+        var clearBtn = form.querySelector('button[data-clear="1"]');
+        if (clearBtn) {
+          clearBtn.addEventListener('click', function () { send({clear: true}); });
+        }
+      })();
+    </script>
+    {% endif %}
+  </div>
+  {% endif %}
+
   <!-- Coverage Sources (DetectionIngest bridge) -->
   {% if coverage and (coverage.on_parcel_cameras or coverage.neighbors) %}
   <div class="mb-8">
@@ -685,53 +1290,6 @@
   </div>
   {% endif %}
 
-  {# Data-confidence grade (A-D) with rubric. Mirrors confidence.py
-     PDF section. Gives a loan-review committee a single-letter
-     quality read plus the per-dimension breakdown behind it. #}
-  {% if confidence %}
-  <div class="mb-8">
-    <h2 class="text-lg font-semibold text-slate-800 dark:text-gray-100 mb-3">
-      Data confidence
-    </h2>
-    <div class="flex items-stretch gap-4">
-      {% set grade_color = {
-        'A': 'bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-300 border-emerald-300 dark:border-emerald-700',
-        'B': 'bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 border-teal-300 dark:border-teal-700',
-        'C': 'bg-amber-50 dark:bg-amber-900/20 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700',
-        'D': 'bg-rose-50 dark:bg-rose-900/20 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-700',
-      } %}
-      <div class="flex flex-col items-center justify-center
-                  px-6 py-4 rounded border
-                  {{ grade_color.get(confidence.grade, '') }}">
-        <div class="text-5xl font-bold mono leading-none">{{ confidence.grade }}</div>
-        <div class="text-[11px] uppercase tracking-widest mt-2">
-          {{ confidence.score }} / {{ confidence.max }}
-        </div>
-      </div>
-      <div class="flex-1">
-        <table class="w-full text-[13px]">
-          <tbody>
-            {% for r in confidence.rows %}
-            <tr class="border-b border-slate-100 dark:border-gray-800 last:border-0">
-              <td class="py-1.5 pr-3 font-medium text-slate-700 dark:text-gray-200 w-44">
-                {{ r.label }}
-              </td>
-              <td class="py-1.5 pr-3 w-6 text-center
-                         {% if r.score == 2 %}text-emerald-600 dark:text-emerald-400{% elif r.score == 1 %}text-amber-600 dark:text-amber-400{% else %}text-rose-600 dark:text-rose-400{% endif %}">
-                <span class="font-bold">{{ r.mark }}</span>
-              </td>
-              <td class="py-1.5 text-slate-600 dark:text-gray-300 text-[12px]">
-                {{ r.detail }}
-              </td>
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-  {% endif %}
-
   {# Classifier accuracy — hunter-labeled ground-truth vs classifier
      predictions. Only rendered when at least one ProcessingJob on this
      parcel has accuracy_report_json (filenames of the form
@@ -856,7 +1414,7 @@
   {# Methodology appendix — inline, mirrors report/sections/methodology.py.
      Rendered collapsed by default to keep the report scannable; a
      reviewer clicks to expand the full text + references. #}
-  <details class="mt-10 pt-6 hr-thin text-xs text-slate-500 dark:text-gray-400 leading-relaxed group">
+  <details open class="mt-10 pt-6 hr-thin text-xs text-slate-500 dark:text-gray-400 leading-relaxed group">
     <summary class="list-none cursor-pointer select-none flex items-center justify-between">
       <div class="font-semibold uppercase tracking-widest text-slate-700 dark:text-gray-300">
         Methodology

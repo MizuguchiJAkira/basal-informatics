@@ -48,8 +48,8 @@ def app_client():
             db.session.flush()
 
         lender = LenderClient(
-            name="Farm Credit of Central Texas", slug="fcct-acc",
-            state="TX", contact_email="portfolio@fcct.example.com",
+            name="Acme Agricultural Credit", slug="acme-acc",
+            state="TX", contact_email="portfolio@acme.example.com",
             plan_tier="per_parcel", per_parcel_rate_usd=1500.00,
             active=True,
         )
@@ -170,7 +170,7 @@ def app_client():
 
 def test_accuracy_section_aggregates_across_jobs(app_client):
     _, client, pid, _ = app_client
-    resp = client.get(f"/lender/fcct-acc/parcel/{pid}")
+    resp = client.get(f"/lender/acme-acc/parcel/{pid}")
     assert resp.status_code == 200, resp.data[:400]
     body = resp.data.decode("utf-8", errors="replace")
 
@@ -198,7 +198,7 @@ def test_accuracy_section_aggregates_across_jobs(app_client):
 
 def test_accuracy_section_omitted_when_no_labeled_jobs(app_client):
     _, client, _, bare_pid = app_client
-    resp = client.get(f"/lender/fcct-acc/parcel/{bare_pid}")
+    resp = client.get(f"/lender/acme-acc/parcel/{bare_pid}")
     assert resp.status_code == 200, resp.data[:400]
     body = resp.data.decode("utf-8", errors="replace")
     assert "Classifier accuracy" not in body

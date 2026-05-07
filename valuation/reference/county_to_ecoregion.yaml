@@ -1,0 +1,293 @@
+# Texas county → wildlife appraisal ecoregion mapping.
+#
+# All 254 Texas counties assigned to one of the 8 wildlife appraisal
+# regions used by the Texas Comptroller for 1-d-1(w) intensity-of-use
+# standards. Counties that span ecoregion boundaries are assigned to
+# their dominant region by land-area share; for parcels whose actual
+# location matters at boundary precision, the CAD adapter SHOULD pass
+# the parcel-resolved ecoregion directly rather than relying on the
+# county-level default.
+#
+# Format: each ecoregion key maps to a flat list of county names
+# (lowercase, no "county" suffix). The ``ecoregion_for_county()``
+# loader inverts this to a county→ecoregion lookup at import time.
+#
+# SOURCE: TPWD Comprehensive Wildlife Management Planning Guidelines
+# (per-region), cross-referenced against EPA Level III/IV ecoregion
+# polygons for boundary-county assignments. Blackland Prairies (a
+# distinct EPA region) is folded into Cross Timbers and Prairies for
+# the 8-region wildlife appraisal taxonomy. High Plains is folded
+# into Rolling Plains the same way.
+#
+# Coverage: complete (all 254 Texas counties assigned). A county not
+# present here is a typo in the input, not a missing entry.
+
+edwards_plateau:
+  - bandera
+  - blanco
+  - burnet
+  - coke
+  - coleman
+  - comal
+  - concho
+  - crockett
+  - edwards
+  - gillespie
+  - hays
+  - irion
+  - kendall
+  - kerr
+  - kimble
+  - kinney
+  - llano
+  - mason
+  - mcculloch
+  - medina
+  - menard
+  - real
+  - san saba
+  - schleicher
+  - sterling
+  - sutton
+  - tom green
+  - travis
+  - uvalde
+  - val verde
+
+post_oak_savannah:
+  - anderson
+  - bastrop
+  - bell
+  - brazos
+  - burleson
+  - caldwell
+  - cherokee
+  - falls
+  - fayette
+  - freestone
+  - grimes
+  - henderson
+  - houston
+  - lavaca
+  - lee
+  - leon
+  - limestone
+  - madison
+  - milam
+  - montgomery
+  - robertson
+  - smith
+  - trinity
+  - walker
+  - washington
+  - williamson
+
+cross_timbers_and_prairies:
+  - archer
+  - bosque
+  - brown
+  - callahan
+  - clay
+  - collin
+  - comanche
+  - cooke
+  - coryell
+  - dallas
+  - delta
+  - denton
+  - eastland
+  - ellis
+  - erath
+  - fannin
+  - grayson
+  - hamilton
+  - hill
+  - hood
+  - hopkins
+  - hunt
+  - jack
+  - johnson
+  - kaufman
+  - lamar
+  - lampasas
+  - mclennan
+  - mills
+  - montague
+  - navarro
+  - palo pinto
+  - parker
+  - rains
+  - rockwall
+  - shackelford
+  - somervell
+  - stephens
+  - tarrant
+  - throckmorton
+  - wise
+  - young
+
+gulf_coast_prairies_and_marshes:
+  - aransas
+  - austin
+  - brazoria
+  - calhoun
+  - chambers
+  - colorado
+  - dewitt
+  - fort bend
+  - galveston
+  - goliad
+  - harris
+  - jackson
+  - jefferson
+  - kenedy
+  - kleberg
+  - liberty
+  - matagorda
+  - nueces
+  - orange
+  - refugio
+  - san patricio
+  - victoria
+  - waller
+  - wharton
+
+pineywoods:
+  - angelina
+  - bowie
+  - camp
+  - cass
+  - franklin
+  - gregg
+  - hardin
+  - harrison
+  - jasper
+  - marion
+  - morris
+  - nacogdoches
+  - newton
+  - panola
+  - polk
+  - red river
+  - rusk
+  - sabine
+  - san augustine
+  - san jacinto
+  - shelby
+  - titus
+  - tyler
+  - upshur
+  - van zandt
+  - wood
+
+rolling_plains:
+  - andrews
+  - armstrong
+  - bailey
+  - baylor
+  - borden
+  - briscoe
+  - carson
+  - castro
+  - childress
+  - cochran
+  - collingsworth
+  - cottle
+  - crosby
+  - dallam
+  - dawson
+  - deaf smith
+  - dickens
+  - donley
+  - fisher
+  - floyd
+  - foard
+  - gaines
+  - garza
+  - gray
+  - hale
+  - hall
+  - hansford
+  - hardeman
+  - hartley
+  - haskell
+  - hemphill
+  - hockley
+  - howard
+  - hutchinson
+  - jones
+  - kent
+  - king
+  - knox
+  - lamb
+  - lipscomb
+  - lubbock
+  - lynn
+  - martin
+  - mitchell
+  - moore
+  - motley
+  - nolan
+  - ochiltree
+  - oldham
+  - parmer
+  - potter
+  - randall
+  - roberts
+  - runnels
+  - scurry
+  - sherman
+  - stonewall
+  - swisher
+  - taylor
+  - terry
+  - wheeler
+  - wichita
+  - wilbarger
+  - yoakum
+
+south_texas_plains:
+  - atascosa
+  - bee
+  - bexar
+  - brooks
+  - cameron
+  - dimmit
+  - duval
+  - frio
+  - gonzales
+  - guadalupe
+  - hidalgo
+  - jim hogg
+  - jim wells
+  - karnes
+  - la salle
+  - live oak
+  - mcmullen
+  - maverick
+  - starr
+  - webb
+  - willacy
+  - wilson
+  - zapata
+  - zavala
+
+trans_pecos:
+  - brewster
+  - crane
+  - culberson
+  - ector
+  - el paso
+  - glasscock
+  - hudspeth
+  - jeff davis
+  - loving
+  - midland
+  - pecos
+  - presidio
+  - reagan
+  - reeves
+  - terrell
+  - upton
+  - ward
+  - winkler

@@ -40,6 +40,7 @@ from report.sections import (
     temporal,
     confidence,
     methodology,
+    valuation_risk,
 )
 
 
@@ -201,6 +202,12 @@ def generate_report(
     # Damage projections
     story.extend(damage_projection.render(assessment))
     story.append(Spacer(1, 0.35 * inch))
+
+    # Valuation risk (Stage 7) — additive: returns [] when assessment
+    # has no "valuation_risk" key, so legacy parcels render unchanged.
+    story.extend(valuation_risk.render(assessment))
+    if assessment.get("valuation_risk"):
+        story.append(Spacer(1, 0.35 * inch))
 
     # Temporal analysis
     story.extend(temporal.render(assessment, detections=detections))

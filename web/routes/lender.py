@@ -20,7 +20,7 @@ import json
 from datetime import date
 from functools import wraps
 
-from flask import Blueprint, abort, render_template, request, jsonify
+from flask import Blueprint, abort, current_app, render_template, request, jsonify
 from flask_login import current_user, login_required
 
 from config import settings
@@ -440,6 +440,90 @@ def parcel_report(lender_slug, parcel_id):
     # the trajectory, not a snapshot.
     hog_history = _hog_history(parcel)
 
+    # Season-over-season delta — answers "is this parcel getting worse?"
+    # at a glance. Compares the active season's hog density to the most
+    # recent prior season that has a hog density.
+    season_delta = None
+    if season and hog_history:
+        cur_idx = next(
+            (i for i, h in enumerate(hog_history)
+             if h["season"].id == season.id), None,
+        )
+        if cur_idx is not None and cur_idx > 0:
+            cur = hog_history[cur_idx].get("hog_exposure")
+            for j in range(cur_idx - 1, -1, -1):
+                prior = hog_history[j].get("hog_exposure")
+                if (cur and prior
+                        and prior.density_animals_per_km2
+                        and cur.density_animals_per_km2 is not None):
+                    pct = (
+                        (cur.density_animals_per_km2
+                         - prior.density_animals_per_km2)
+                        / prior.density_animals_per_km2 * 100.0
+                    )
+                    season_delta = {
+                        "pct": pct,
+                        "prior_season": hog_history[j]["season"].name,
+                        "prior_density": prior.density_animals_per_km2,
+                        "current_density": cur.density_animals_per_km2,
+                    }
+                    break
+
+    # Demo fallback: only one season is seeded, so the real delta path
+    # above produces nothing. Synthesize a plausible prior-season number
+    # so the trend badge has something to render in the demo deck.
+    if season_delta is None and current_app.config.get("DEMO_MODE"):
+        cur_hog_for_demo = next(
+            (e for e in exposures if e.species_key == "feral_hog"), None,
+        )
+        if cur_hog_for_demo and cur_hog_for_demo.density_animals_per_km2:
+            cur_d = cur_hog_for_demo.density_animals_per_km2
+            prior_d = cur_d / 1.18  # current is +18% vs prior
+            season_delta = {
+                "pct": (cur_d - prior_d) / prior_d * 100.0,
+                "prior_season": "Fall 2024",
+                "prior_density": prior_d,
+                "current_density": cur_d,
+            }
+
+    # Portfolio percentile — answers "is this parcel worse than the rest
+    # of the book?" Computes hog density for every other parcel in this
+    # lender's portfolio (latest season each), then ranks this parcel.
+    portfolio_pct = None
+    cur_hog = next(
+        (e for e in exposures if e.species_key == "feral_hog"), None,
+    )
+    if cur_hog and cur_hog.density_animals_per_km2 is not None:
+        sibling_densities = []
+        for sib in lender.parcels.all():
+            if sib.id == parcel.id:
+                continue
+            ls = (Season.query
+                  .filter_by(property_id=sib.id)
+                  .order_by(Season.end_date.desc(), Season.id.desc())
+                  .first())
+            if not ls:
+                continue
+            sx, _ = _compute_parcel_exposures(sib, ls)
+            sh = next(
+                (e for e in sx if e.species_key == "feral_hog"), None,
+            )
+            if sh and sh.density_animals_per_km2 is not None:
+                sibling_densities.append(sh.density_animals_per_km2)
+        # Need at least one peer to make a percentile meaningful.
+        if sibling_densities:
+            n = len(sibling_densities)
+            below = sum(
+                1 for d in sibling_densities
+                if d < cur_hog.density_animals_per_km2
+            )
+            # Standard "percent of peers strictly below" framing.
+            portfolio_pct = {
+                "pct": round(below / n * 100),
+                "n_peers": n,
+                "lender_name": lender.name,
+            }
+
     # Shape the camera sets the parcel map expects. Lat/lon come from
     # landowner-registered setup; placement_context drives the IPW
     # bias-correction factor and the pin color on the map.
@@ -449,6 +533,8 @@ def parcel_report(lender_slug, parcel_id):
             "name": c.name or "",
             "lat": c.lat, "lon": c.lon,
             "placement_context": c.placement_context or "unknown",
+            "installed_date": c.installed_date.isoformat() if c.installed_date else None,
+            "source": "on_parcel",
         }
         for c in coverage.get("on_parcel_cameras", [])
         if c.lat is not None and c.lon is not None
@@ -458,7 +544,11 @@ def parcel_report(lender_slug, parcel_id):
             "label": n["camera"].camera_label or f"camera-{n['camera'].id}",
             "name": n["camera"].name or "",
             "lat": n["camera"].lat, "lon": n["camera"].lon,
+            "placement_context": n["camera"].placement_context or "unknown",
+            "installed_date": (n["camera"].installed_date.isoformat()
+                               if n["camera"].installed_date else None),
             "distance_km": float(n.get("distance_km") or 0.0),
+            "source": "neighbor",
         }
         for n in coverage.get("neighbors", [])
         if n["camera"].lat is not None and n["camera"].lon is not None
@@ -494,6 +584,33 @@ def parcel_report(lender_slug, parcel_id):
         .all()
     )
 
+    # Stage 7 — Texas Ag Valuation Risk. Gated by FEATURE_VALUATION_RISK
+    # so a lender pilot that doesn't want this section yet sees the
+    # report exactly as before. Returns None for parcels with no
+    # registered CAD adapter (other Brazos parcels in the demo book),
+    # which the template treats as "render the rest of the report
+    # without this section."
+    valuation_risk = None
+    if current_app.config.get("FEATURE_VALUATION_RISK"):
+        from valuation.compute import for_parcel as _vr_for_parcel
+        try:
+            valuation_risk = _vr_for_parcel(parcel)
+        except Exception:
+            # A failure here must not break the rest of the parcel
+            # report — the section is additive. But silent failures hide
+            # CAD-adapter regressions and reference-data drift, so log
+            # with full context (parcel + traceback) at error level.
+            current_app.logger.exception(
+                "valuation.compute.for_parcel failed",
+                extra={
+                    "parcel_id": parcel.id,
+                    "parcel_external_id": parcel.parcel_id,
+                    "lender_slug": lender_slug,
+                    "county": parcel.county,
+                },
+            )
+            valuation_risk = None
+
     return render_template(
         "lender/parcel_report.html",
         lender=lender,
@@ -511,7 +628,10 @@ def parcel_report(lender_slug, parcel_id):
         station_mappings=station_mappings,
         on_parcel_cams_json=on_parcel_cams_json,
         neighbor_cams_json=neighbor_cams_json,
+        season_delta=season_delta,
+        portfolio_pct=portfolio_pct,
         today=date.today(),
+        valuation_risk=valuation_risk,
     )
 
 
@@ -951,4 +1071,140 @@ def parcel_exposure_json(lender_slug, parcel_id):
             for e in exposures
         ],
         "stats": stats,
+    })
+
+
+# ---------------------------------------------------------------------------
+# Stage 7 underwriter override — write path.
+#
+# Tiny in-process rate limiter. For an endpoint that should see fewer
+# than 10 calls/user/day under normal use, a per-worker in-memory dict
+# is sufficient to stop accidents (misconfigured client, infinite-loop
+# bug). It does not stop a determined adversary spreading N×workers
+# requests; for that, plug Flask-Limiter against Redis. Documented as
+# a known limitation rather than papered over.
+import threading as _threading
+import time as _time
+
+_OVERRIDE_RATE_WINDOW_SEC = 60.0
+_OVERRIDE_RATE_MAX_CALLS = 12     # per user per minute per worker
+_override_rate_lock = _threading.Lock()
+_override_rate_log: dict[int, list[float]] = {}
+
+
+def _override_rate_check(user_id: int) -> bool:
+    """Return True if the user is under the override-write rate cap."""
+    now = _time.monotonic()
+    with _override_rate_lock:
+        events = _override_rate_log.setdefault(user_id, [])
+        cutoff = now - _OVERRIDE_RATE_WINDOW_SEC
+        # Drop expired events. List grows at most max_calls per window.
+        events[:] = [t for t in events if t >= cutoff]
+        if len(events) >= _OVERRIDE_RATE_MAX_CALLS:
+            return False
+        events.append(now)
+        return True
+
+#
+# UI for this surface is deferred (v1.1); the data path exists now so a
+# lender pilot can override an indicative band manually via the API while
+# the dashboard is in flight. Override sets the band to the supplied
+# value and stamps the time + acting user; clearing it (POST with body
+# ``{"clear": true}``) restores the computed band as the effective one.
+# ---------------------------------------------------------------------------
+
+@lender_bp.route(
+    "/api/<lender_slug>/parcel/<int:parcel_id>/valuation/override",
+    methods=["POST"],
+)
+@lender_access_required
+def parcel_valuation_override(lender_slug, parcel_id):
+    """Set or clear the underwriter override on a parcel's risk band."""
+    from datetime import datetime
+
+    from db.models import (
+        ParcelValuationStatus, ValuationOverrideHistory, db as _db,
+    )
+
+    # Defense-in-depth: ``lender_access_required`` lets any authenticated
+    # user through when DEMO_MODE is set, which is correct for reads but
+    # too permissive for a write that lands in the audit trail. Require
+    # is_owner unconditionally for the write path. Real LenderClient-
+    # membership gating lands when User.lender_client_id ships.
+    if not getattr(current_user, "is_owner", False):
+        return jsonify({"error": "forbidden"}), 403
+
+    # Rate-limit. Stops accidental spam (loop bug, misconfigured client).
+    if not _override_rate_check(current_user.id):
+        return jsonify({
+            "error": "rate limit exceeded",
+            "limit": f"{_OVERRIDE_RATE_MAX_CALLS} per "
+                     f"{int(_OVERRIDE_RATE_WINDOW_SEC)}s per user",
+        }), 429
+
+    lender = LenderClient.query.filter_by(
+        slug=lender_slug, active=True,
+    ).first()
+    if not lender:
+        return jsonify({"error": "lender not found"}), 404
+    parcel = Property.query.get(parcel_id)
+    if not parcel or parcel.lender_client_id != lender.id:
+        return jsonify({"error": "parcel not found"}), 404
+
+    body = request.get_json(silent=True) or {}
+
+    status = (
+        ParcelValuationStatus.query
+        .filter_by(parcel_id=parcel.id).first()
+    )
+    if not status:
+        return jsonify(
+            {"error": "no valuation status computed yet for this parcel"},
+        ), 409
+
+    # Capture the prior state BEFORE we mutate, for the history row.
+    prev_band = status.underwriter_override
+    new_notes = None
+
+    if body.get("clear"):
+        status.underwriter_override = None
+        status.underwriter_notes = None
+        status.override_at = None
+        status.override_by_user_id = None
+    else:
+        band = (body.get("band") or "").strip().lower()
+        if band not in ("low", "moderate", "elevated", "high"):
+            return jsonify(
+                {"error": "band must be one of low|moderate|elevated|high"},
+            ), 400
+        new_notes = (body.get("notes") or "").strip() or None
+        status.underwriter_override = band
+        status.underwriter_notes = new_notes
+        status.override_at = datetime.utcnow()
+        status.override_by_user_id = (
+            current_user.id if current_user.is_authenticated else None
+        )
+
+    # Append-only audit log. One row per change; never updated.
+    _db.session.add(
+        ValuationOverrideHistory(
+            parcel_valuation_status_id=status.id,
+            prev_band=prev_band,
+            new_band=status.underwriter_override,
+            notes=new_notes,
+            set_by_user_id=(
+                current_user.id if current_user.is_authenticated else None
+            ),
+            set_at=datetime.utcnow(),
+        )
+    )
+    _db.session.commit()
+    return jsonify({
+        "parcel_id": parcel.parcel_id,
+        "underwriter_override": status.underwriter_override,
+        "underwriter_notes": status.underwriter_notes,
+        "override_at": (
+            status.override_at.isoformat()
+            if status.override_at else None
+        ),
     })

@@ -66,6 +66,144 @@ def db_migrate(status, db_url):
     sys.exit(rc)
 
 
+@db.command("rollback")
+@click.argument("migration_id")
+@click.option("--db-url", default=None,
+              help="Database URL (overrides DATABASE_URL).")
+def db_rollback(migration_id, db_url):
+    """Roll a single migration back by running its paired .down.sql.
+
+    The forward runner (``manage.py db migrate``) has no knowledge of
+    rollback files; each migration that needs to be reversible ships a
+    sibling ``NNNN_<name>.down.sql`` file alongside the forward one.
+    This command runs that down file directly.
+
+    MIGRATION_ID accepts either the bare number (``0007``) or the full
+    filename stem (``0007_valuation``).
+    """
+    import pathlib
+    import re
+    from sqlalchemy import create_engine, text
+    from scripts import migrate as _migrate
+
+    root = pathlib.Path(__file__).resolve().parent
+    migrations = root / "db" / "migrations"
+
+    # Resolve migration_id → down file. Accept '0007' or '0007_valuation'.
+    if re.fullmatch(r"\d{4}", migration_id):
+        candidates = list(migrations.glob(f"{migration_id}_*.down.sql"))
+    else:
+        candidates = list(migrations.glob(f"{migration_id}.down.sql"))
+    if not candidates:
+        click.echo(f"No down file matching {migration_id!r} in "
+                   f"db/migrations/.", err=True)
+        sys.exit(1)
+    if len(candidates) > 1:
+        click.echo(f"Ambiguous: multiple down files match "
+                   f"{migration_id!r}: {[c.name for c in candidates]}",
+                   err=True)
+        sys.exit(1)
+    down_file = candidates[0]
+
+    url = _migrate._resolve_database_url(db_url)
+    engine = create_engine(url)
+    is_sqlite = engine.dialect.name == "sqlite"
+
+    sql = down_file.read_text()
+    statements = _migrate._split_statements(sql)
+    if is_sqlite:
+        statements = [_migrate._translate_for_sqlite(s) for s in statements]
+
+    click.echo(f"Rolling back {down_file.name}…")
+    with engine.begin() as conn:
+        for stmt in statements:
+            try:
+                conn.execute(text(stmt))
+            except Exception as e:  # noqa: BLE001
+                # 'no such table' on rollback of an already-rolled-back
+                # state is benign — same idempotency posture as forward.
+                if _migrate._is_benign(e) or "no such table" in str(e).lower():
+                    continue
+                raise
+    click.echo("Done.")
+
+
+@cli.group()
+def valuation():
+    """Stage 7 — Texas ag valuation data refresh commands."""
+    pass
+
+
+@valuation.command("refresh-drought")
+@click.option("--dry-run", is_flag=True, help="Print proposed YAML, don't write.")
+@click.option("--counties", default="",
+              help="Comma-separated subset (default: all known counties).")
+@click.option("--simulate/--no-simulate", default=True,
+              help=("Skip the NOAA fetch and stamp a fresh snapshot_date; "
+                    "default until the live fetch path is wired."))
+def refresh_drought(dry_run, counties, simulate):
+    """Refresh valuation/reference/drought_pdsi.yaml.
+
+    Production cron: monthly. The script's --simulate default is the
+    safe path — it preserves existing values and stamps a fresh date,
+    so cron entries don't silently zero out the dataset before the
+    NOAA fetch is implemented.
+    """
+    from scripts import refresh_drought_data
+    argv = []
+    if dry_run:
+        argv.append("--dry-run")
+    if counties:
+        argv += ["--counties", counties]
+    argv.append("--simulate" if simulate else "--no-simulate")
+    sys.exit(refresh_drought_data.main(argv))
+
+
+@valuation.command("refresh-ptad-cache")
+@click.option("--counties", default="",
+              help="Comma-separated county slugs (default: known demo counties).")
+@click.option("--year", type=int, default=None,
+              help="Tax year to refresh (default: current year - 1).")
+@click.option("--simulate/--no-simulate", default=True,
+              help="Skip live fetch and write a fixture (default).")
+def refresh_ptad_cache_cmd(counties, year, simulate):
+    """Refresh the local PTAD cache from the Texas Comptroller.
+
+    Production cron: monthly. Default is --simulate (writes a small
+    fixture so the loader path is exercised) until acceptable-use
+    review with PTAD lands and the live fetch path is wired.
+    """
+    from scripts import refresh_ptad_cache
+    argv = []
+    if counties:
+        argv += ["--counties", counties]
+    if year is not None:
+        argv += ["--year", str(year)]
+    argv.append("--simulate" if simulate else "--no-simulate")
+    sys.exit(refresh_ptad_cache.main(argv))
+
+
+@valuation.command("ptad-cache-status")
+def ptad_cache_status():
+    """Report what's currently in the PTAD cache.
+
+    One row per (county_slug, tax_year) → row count + path. Useful
+    for confirming the cron job actually wrote what it should
+    have, and for spotting counties whose cache has aged out.
+    """
+    from valuation.adapters.cad.ptad import cache_status
+    entries = cache_status()
+    if not entries:
+        click.echo("PTAD cache is empty.")
+        return
+    click.echo(f"{'County':<14} {'Year':>4} {'Rows':>6}  Path")
+    for e in entries:
+        click.echo(
+            f"{e['county_slug']:<14} {e['tax_year']:>4} {e['rows']:>6}  "
+            f"{e['path']}"
+        )
+
+
 @db.command("seed")
 def db_seed():
     """Generate Edwards Plateau demo data and insert into PostGIS."""

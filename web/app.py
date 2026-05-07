@@ -22,18 +22,22 @@ def _seed_strecker_demo(hunter, db, Property, Camera, Season, Upload,
     from pathlib import Path
     from collections import defaultdict
 
-    # Ranch parcel boundary (rough polygon enclosing camera positions)
+    # Ranch parcel boundary (rough polygon enclosing camera positions).
+    # Located in remote NE Kimble County, well clear of Junction (TX) and
+    # Junction Kimble County Airport (KJCT, ~30.51N -99.77W) which an
+    # earlier polygon overlapped. This area is uninhabited cedar/oak
+    # juniper rangeland.
     ranch_boundary = json.dumps({
         "type": "Feature",
         "properties": {"name": "Edwards Plateau Ranch"},
         "geometry": {
             "type": "Polygon",
             "coordinates": [[
-                [-99.77, 30.46],
-                [-99.77, 30.53],
-                [-99.69, 30.53],
-                [-99.69, 30.46],
-                [-99.77, 30.46],
+                [-99.570, 30.640],
+                [-99.570, 30.668],
+                [-99.532, 30.668],
+                [-99.532, 30.640],
+                [-99.570, 30.640],
             ]]
         }
     })
@@ -59,12 +63,12 @@ def _seed_strecker_demo(hunter, db, Property, Camera, Season, Upload,
     db.session.flush()
 
     cam_configs = [
-        ("CAM-F01", "South Feeder", 30.48, -99.72, "feeder"),
-        ("CAM-F02", "North Feeder", 30.51, -99.74, "feeder"),
-        ("CAM-T01", "Creek Crossing", 30.49, -99.71, "trail"),
-        ("CAM-T02", "Ridge Trail", 30.50, -99.73, "trail"),
-        ("CAM-W01", "Stock Tank", 30.47, -99.70, "water"),
-        ("CAM-P01", "Oat Plot", 30.52, -99.75, "food_plot"),
+        ("CAM-F01", "South Feeder",   30.648, -99.560, "feeder"),
+        ("CAM-F02", "North Feeder",   30.660, -99.555, "feeder"),
+        ("CAM-T01", "Creek Crossing", 30.652, -99.545, "trail"),
+        ("CAM-T02", "Ridge Trail",    30.658, -99.540, "trail"),
+        ("CAM-W01", "Stock Tank",     30.643, -99.563, "water"),
+        ("CAM-P01", "Oat Plot",       30.665, -99.548, "food_plot"),
     ]
     cam_id_map = {}  # camera_label -> db id
     for label, name, lat, lon, ctx in cam_configs:
@@ -214,6 +218,15 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
     app.config["DEMO_MODE"] = demo
     app.config["SITE"] = site
 
+    # Stage 7 (Texas Ag Valuation Risk) — feature flag.
+    # Default ON for demo runs so the lender PDF + HTML carry the new
+    # section out of the box. Production deploys set it via env so a
+    # lender pilot that hasn't approved the section yet sees the
+    # legacy report unchanged.
+    app.config["FEATURE_VALUATION_RISK"] = (
+        os.environ.get("FEATURE_VALUATION_RISK", "1" if demo else "0") == "1"
+    )
+
     # Initialize extensions
     csrf = CSRFProtect(app)
     db.init_app(app)
@@ -297,6 +310,12 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
         owner_api_bp,
     ):
         csrf.exempt(bp)
+
+    # Stage 7 underwriter override — JSON-only endpoint mounted on
+    # ``lender_bp`` (which has HTML routes too, so we can't bulk-exempt
+    # the blueprint). Exempt just this view function.
+    from web.routes.lender import parcel_valuation_override
+    csrf.exempt(parcel_valuation_override)
 
     # ── Per-request active-site resolution ──
     # Maps request Host → "basal" | "strecker". The matching rules are

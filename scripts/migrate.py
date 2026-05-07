@@ -234,6 +234,11 @@ def _discover_migrations() -> list[pathlib.Path]:
     if not MIGRATIONS_DIR.is_dir():
         return []
     files = sorted(MIGRATIONS_DIR.glob("[0-9][0-9][0-9][0-9]_*.sql"))
+    # Down files (NNNN_<name>.down.sql) live alongside their forward
+    # counterparts. They're applied via manage.py db rollback, never by
+    # the forward runner. Filter them out so they don't end up in the
+    # tracker as "applied forward migrations."
+    files = [f for f in files if not f.name.endswith(".down.sql")]
     return files
 
 

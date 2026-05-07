@@ -7,7 +7,7 @@ plus a methodology brief that survives an actuary's scrutiny.
 ## Status snapshot (2026-04-17)
 
 ✓ Lender pivot shipped: LenderClient model, exposure engine, /lender routes, 5-parcel portfolio
-✓ Farm Credit of Central Texas portfolio live (verified via JSON + HTML render)
+✓ Acme Agricultural Credit portfolio live (verified via JSON + HTML render)
 ✓ REM density estimator + Feral Hog Exposure Score (17 new tests; 40/40 green)
 ✓ Compliance-aesthetic UI (portfolio table + Nature Exposure Report)
 ✓ 4 GB worker Droplet (upsized from 2 GB — SpeciesNet now runs without OOM)

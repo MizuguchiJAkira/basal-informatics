@@ -13,8 +13,8 @@ Strategy:
     boundary GeoJSON, Season, 4 Cameras (random + biased mix),
     DetectionSummaries for feral_hog + a non-hog species, plus a
     prior-season DetectionSummary for the trend widget.
-  - Hit /lender/fcct/, /lender/fcct/parcel/<id>, and
-    /lender/api/fcct/parcel/<id>/exposure. Assert status 200 and
+  - Hit /lender/acme/, /lender/acme/parcel/<id>, and
+    /lender/api/acme/parcel/<id>/exposure. Assert status 200 and
     presence of the markers we added this round.
 
 The tests don't re-verify the underlying math — that's covered by
@@ -59,7 +59,7 @@ for _mod in list(_sys.modules):
 @pytest.fixture(scope="module")
 def app_client():
     """Build an app bound to a fresh in-memory SQLite, seed minimal
-    FCCT portfolio, return (app, client, parcel_id).
+    Acme Ag portfolio, return (app, client, parcel_id).
     """
     # Import inside the fixture so os.environ above is honored.
     from web.app import create_app
@@ -80,8 +80,8 @@ def app_client():
             db.session.flush()
 
         lender = LenderClient(
-            name="Farm Credit of Central Texas", slug="fcct",
-            state="TX", contact_email="portfolio@fcct.example.com",
+            name="Acme Agricultural Credit", slug="acme",
+            state="TX", contact_email="portfolio@acme.example.com",
             plan_tier="per_parcel", per_parcel_rate_usd=1500.00,
             active=True,
         )
@@ -194,11 +194,11 @@ def app_client():
 
 def test_portfolio_renders_with_tier_tally(app_client):
     _, client, _ = app_client
-    resp = client.get("/lender/fcct/")
+    resp = client.get("/lender/acme/")
     assert resp.status_code == 200, resp.data[:400]
     body = resp.data.decode("utf-8", errors="replace")
     # Branded header + tier tally chips present.
-    assert "Farm Credit of Central Texas" in body
+    assert "Acme Agricultural Credit" in body
     assert "SEVERE" in body.upper()
     assert "Riverbend Farm" in body
 
@@ -208,7 +208,7 @@ def test_parcel_report_contains_all_pdf_parity_markers(app_client):
     pass. If any helper crashes or any template block breaks, one of
     these markers disappears and the test fails."""
     _, client, pid = app_client
-    resp = client.get(f"/lender/fcct/parcel/{pid}")
+    resp = client.get(f"/lender/acme/parcel/{pid}")
     assert resp.status_code == 200, resp.data[:400]
     body = resp.data.decode("utf-8", errors="replace")
 
@@ -232,10 +232,12 @@ def test_parcel_report_contains_all_pdf_parity_markers(app_client):
 
     # (5) Data-confidence grade block
     assert "Data confidence" in body
-    # Grade must be one of A/B/C/D (Riverbend-shaped seed → B)
+    # Grade must be one of A/B/C/D (Riverbend-shaped seed → B). The
+    # editorial restyle uses inline font-size: 52px on the letter
+    # rather than a Tailwind text-5xl class.
     import re
     grade_match = re.search(
-        r'class="[^"]*text-5xl[^"]*"[^>]*>\s*([A-D])\s*<', body)
+        r'font-size:\s*52px[^"]*"[^>]*>\s*([A-D])\s*<', body)
     assert grade_match is not None, "grade letter not found"
     assert grade_match.group(1) in {"A", "B", "C", "D"}
 
@@ -255,11 +257,11 @@ def test_exposure_json_has_pipeline_and_history(app_client):
     side portfolio systems. Shape changes here silently break
     downstream importers — cover the contract."""
     _, client, pid = app_client
-    resp = client.get(f"/lender/api/fcct/parcel/{pid}/exposure")
+    resp = client.get(f"/lender/api/acme/parcel/{pid}/exposure")
     assert resp.status_code == 200
     payload = resp.get_json()
 
-    assert payload["lender"]["slug"] == "fcct"
+    assert payload["lender"]["slug"] == "acme"
     assert payload["season"]["name"] == "Spring 2026"
 
     hog = next((e for e in payload["exposures"]
@@ -300,7 +302,7 @@ def test_unknown_parcel_returns_branded_404(app_client):
     """Error handler regression: a stale demo link should render the
     branded 404 template, not an unstyled Flask default."""
     _, client, _ = app_client
-    resp = client.get("/lender/fcct/parcel/999999")
+    resp = client.get("/lender/acme/parcel/999999")
     assert resp.status_code == 404
     body = resp.data.decode("utf-8", errors="replace")
     assert "Not found" in body  # from the branded template

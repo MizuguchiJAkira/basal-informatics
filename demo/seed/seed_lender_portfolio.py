@@ -1,7 +1,7 @@
 """Seed a SYNTHETIC lender portfolio for demo/pitch purposes.
 
 ⚠️ FABRICATED DATA — not a real lender, not a real loan book, not
-real parcels. "Farm Credit of Central Texas" is a hypothetical
+real parcels. "Acme Agricultural Credit" is a hypothetical
 institution name chosen to mirror the Farm Credit System branding
 convention. The parcels, acreages, and tier targets below are
 invented to produce a visually-complete portfolio UI for product
@@ -25,7 +25,7 @@ Also:
   - Creates one owner user per new parcel so realism holds
     (a lender's portfolio spans multiple landowners).
 
-Idempotent: re-running wipes prior lender+portfolio state for FCCT and
+Idempotent: re-running wipes prior lender+portfolio state for Acme Ag and
 re-seeds. Does NOT delete the hunter-only property setup that
 seed_dashboard.py builds — parcels 2-5 are net-new.
 
@@ -46,12 +46,12 @@ import psycopg2
 from psycopg2.extras import Json as _PgJson
 
 LENDER = {
-    "name": "Farm Credit of Central Texas",
-    "slug": "fcct",
+    "name": "Acme Agricultural Credit",
+    "slug": "acme",
     "parent_org": "Farm Credit System",
     "state": "TX",
     "hq_address": "2001 Brazos St, Austin, TX 78702",
-    "contact_email": "portfolio@fcct.example.com",
+    "contact_email": "portfolio@acme.example.com",
     "plan_tier": "per_parcel",
     "per_parcel_rate_usd": 1500.00,
 }

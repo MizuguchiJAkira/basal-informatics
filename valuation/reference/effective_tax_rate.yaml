@@ -1,0 +1,45 @@
+# Texas Truth-in-Taxation per-county combined effective property tax
+# rates — county + average school district + city + special districts
+# where applicable, expressed as a fractional rate (0.02 = 2.0%).
+#
+# SOURCE: Texas Comptroller's Truth-in-Taxation API, county tax-rate
+# notices, and Texas Tax Foundation effective-rate compilations. The
+# values below are 2025 tax-year combined rates, simple county
+# averages where multiple school districts overlap.
+#
+# AUDIT NOTE: combined rates vary at the parcel level by school
+# district + city + special-district overlay. The §23.55 rollback
+# math accepts a per-parcel ``effective_tax_rate`` override; the
+# values here are county-level *averages* used as a default when no
+# parcel-specific rate has been pulled. For an underwriting decision
+# on a parcel inside a city or MUD with above-average rates, the CAD
+# adapter should override.
+#
+# A productionized version pulls these monthly from the Comptroller's
+# Truth-in-Taxation tax-unit detail API (one entry per taxing unit)
+# and aggregates to the parcel via address geocoding. Until that
+# lands, these averages are the best widely-defensible default.
+#
+# Counties not in the table fall back to ``DEFAULT`` (2.0%, the
+# 2024–2025 Texas state average per the Texas Comptroller).
+
+DEFAULT: 0.0200
+
+# Edwards Plateau (Hill Country)
+kimble:    0.0162
+llano:     0.0181
+mason:     0.0151
+sutton:    0.0148
+edwards:   0.0153
+real:      0.0157
+bandera:   0.0177
+kerr:      0.0185
+gillespie: 0.0163
+blanco:    0.0179
+
+# Post Oak Savannah
+brazos:    0.0218
+burleson:  0.0193
+robertson: 0.0179
+lee:       0.0185
+bastrop:   0.0212

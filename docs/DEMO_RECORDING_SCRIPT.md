@@ -10,8 +10,8 @@ Pair with `DEMO_NARRATIVE.md` for the voiceover text.
 
 ## Pre-flight (2 minutes before you hit record)
 
-1. **Warm the site.** Open https://basal.eco/lender/fcct/ in Chrome. If
-   DNS isn't live yet, use https://monkfish-app-ju2lv.ondigitalocean.app/lender/fcct/.
+1. **Warm the site.** Open https://basal.eco/lender/acme/ in Chrome. If
+   DNS isn't live yet, use https://monkfish-app-ju2lv.ondigitalocean.app/lender/acme/.
    This pre-warms gunicorn; cold-start adds ~15s and will be visible in
    the recording if you skip this.
 2. **Log in.** `jonahakiracheng@gmail.com` / `PilotSmoke-d4e5ab` (change
@@ -33,7 +33,7 @@ Pair with `DEMO_NARRATIVE.md` for the voiceover text.
 
 ### Beat 1 — Pain (0:00 – 0:12)
 
-*You are on* `/lender/fcct/` (the portfolio page).
+*You are on* `/lender/acme/` (the portfolio page).
 
 Script:
 > "Farm Credit and ag banks hold hundreds of billions in loans secured
@@ -45,10 +45,10 @@ Cursor behavior: don't click. Keep cursor roughly center-of-screen.
 
 ### Beat 2 — Product (0:12 – 0:48)
 
-*Still on* `/lender/fcct/`.
+*Still on* `/lender/acme/`.
 
 Script:
-> "This is Farm Credit of Central Texas' Basal portfolio. Five parcels
+> "This is Acme Agricultural Credit' Basal portfolio. Five parcels
 > under assessment."
 
 Action at 0:18: Hover the cursor over the tier-tally chips (`1 Severe

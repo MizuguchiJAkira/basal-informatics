@@ -12,9 +12,16 @@ Report where every number traces back to a specific photo.
 
 **Live:**
 - [basal.eco](https://basal.eco) — editorial landing + sample report +
-  live Farm Credit pilot portal at `/lender/fcct/`
+  demo lender portal at `/lender/acme/` (Acme Agricultural Credit is a
+  fictional placeholder — see [Demo data](#-demo-data))
 - [strecker.app](https://strecker.app) — consumer-side data-acquisition
   tool (see [*The Strecker arm*](#the-strecker-arm) below)
+
+![Acme Agricultural Credit portfolio view](docs/screenshots/portfolio.png)
+
+*Demo lender portfolio at `/lender/acme/`. Three fictional parcels —
+Edwards Plateau Ranch, Riverbend Farm, Llano Highlands — illustrating
+distinct exposure tiers and a 1-d-1(w) wildlife-classified comparable.*
 
 ---
 
@@ -60,6 +67,18 @@ Report where every number traces back to a specific photo.
                                      │  (every number cross-refed   │
                                      │   to source photo + EXIF +   │
                                      │   classifier confidence)     │
+                                     └──────────────┬───────────────┘
+                                                    │
+                                                    ▼
+                                     ┌──────────────────────────────┐
+                                     │ Stage 7: Texas valuation     │
+                                     │ risk module                  │
+                                     │ • CAD snapshot (PTAD-cached) │
+                                     │ • Indicative risk band +     │
+                                     │   named drivers / evidence   │
+                                     │ • §23.55 rollback estimate   │
+                                     │ • 1-d-1(w) remediation       │
+                                     │   pathway via TPWD 3-of-7    │
                                      └──────────────────────────────┘
 ```
 
@@ -83,6 +102,8 @@ The pipeline implements, not invents. Each stage cites published work:
 | Placement-bias correction | **Inverse-propensity weighting on camera-placement priors** — Kolowski & Forrester, *PLOS ONE*, 2017. |
 | Movement parameters | Kay et al. 2017 (feral swine); Webb et al. 2010 (white-tailed deer); Andelt 1985 (coyote). |
 | Tier thresholds | **Mayer & Brisbin**, 2009 (feral hog density bins — v1). |
+| Stage 7 ecoregion / practice rubric | **Texas Comptroller** Manual for the Appraisal of Agricultural Land; **TPWD** Comprehensive Wildlife Management Planning Guidelines (per-region). |
+| Stage 7 rollback liability | **Texas Tax Code §23.55** (3-year recapture window, 5% simple interest under HB 1743/2019). |
 
 ---
 
@@ -158,6 +179,17 @@ strecker/
 bias/                IPW placement-bias correction
 risk/                density estimation, tier classification, synthesis
 habitat/             per-parcel habitat scoring (v2 product line)
+valuation/           Stage 7 — Texas ag valuation risk module
+  reference/         hand-curated YAML: ecoregion intensity, TPWD
+                     7-practice rubric, county→ecoregion map, drought
+                     PDSI snapshot, per-county effective tax rates
+  adapters/cad/      per-county CAD adapter pattern (Kimble, Brazos,
+                     Llano hand-curated; PTAD cache loader)
+  scoring.py         rule-based risk score (named drivers, evidence)
+  exposure.py        assessed-to-market reset + §23.55 rollback
+  remediation.py     TPWD 3-of-7 logic (CamScout census wired to
+                     the census_counts practice)
+  compute.py         orchestrator → JSON contract
 report/              PDF + HTML report generation (ReportLab, Jinja)
 web/
   app.py             Flask factory, host-based site resolution
@@ -165,9 +197,12 @@ web/
   templates/         basal/, dashboard/, auth/, errors/
   static/css/        basal.css (editorial), strecker.css (outdoor)
 demo/                SYNTHETIC demo dataset — see notice below
-tests/               395 passing tests
+tests/               500 passing tests (incl. valuation module)
 docs/                methodology, migration queue, pilot briefs
+                     screenshots/ — README embeds live here
 scripts/             migrate.py, deploy_worker.sh, build_test_sd.py
+                     refresh_drought_data.py — NOAA PDSI refresh
+                     refresh_ptad_cache.py — Texas Comptroller PTAD pull
 ```
 
 ---
@@ -216,11 +251,13 @@ python manage.py web               # :5002
 pytest tests/ -v
 ```
 
-395 tests across schema + migrations, methodology units (REM, IPW,
+500 tests across schema + migrations, methodology units (REM, IPW,
 temporal priors, tier cutoffs), pipeline integration, worker job
 claim semantics, lender report rendering parity, upload flows,
-invite-code gating, and adversarial edge cases (empty ZIPs, bad EXIF,
-unicode filenames, concurrent worker claims).
+invite-code gating, adversarial edge cases (empty ZIPs, bad EXIF,
+unicode filenames, concurrent worker claims), and the Stage 7
+valuation module (rubric invariants, exposure math, remediation
+logic, override audit log, PTAD cache behavior).
 
 ## Deployment
 
@@ -240,12 +277,26 @@ new `.sql` files), restarts the systemd unit.
 
 ## Operational status
 
-- Pipeline live; 395 passing tests; Farm Credit pilot portal functional
-- strecker.app live with invite-gated beta signup (see `docs/HUNTER_OUTREACH.md`)
+- Pipeline live; 500 passing tests; demo lender portal functional at
+  `/lender/acme/`
+- strecker.app live with invite-gated beta signup (see
+  `docs/HUNTER_OUTREACH.md`)
 - Email: DKIM-verified outbound from both `basal.eco` and `strecker.app`
 - Sample Nature Exposure Report PDF:
   [basal.eco/static/sample/nature_exposure_sample.pdf](https://basal.eco/static/sample/nature_exposure_sample.pdf)
 - Reinsurer pilot brief: `docs/REINSURER_ONE_PAGER.md`
+
+## License & visibility
+
+This source is published for the limited purpose of letting lender
+pilot partners and their auditors inspect the implementation behind
+the Nature Exposure Reports they receive. Source-available, **not
+open source.** See [`LICENSE`](LICENSE) for the precise grant. Any
+commercial use, redistribution, or derivative product requires a
+separate agreement.
+
+`NOTICE.md` records the pre-public-flip checklist and the provenance
+of demo content (TNDeer trail-cam photos in particular).
 
 ## Contact
 

@@ -251,6 +251,129 @@ detection timestamps, SpeciesNet inference confidence per photo, and
 the raw ZIP the landowner submitted. Available for any downstream
 review the lender or its auditor runs.
 
+## Texas ag valuation risk (Stage 7)
+
+Stage 7 layers a parcel-level Texas 1-d-1 / 1-d-1(w) valuation risk
+assessment on top of the ecological pipeline. It answers three questions
+a loan-review committee asks but the rest of this methodology does not:
+
+1. Is this parcel's special-use appraisal classification at risk in the
+   next 24 months?
+2. What is the dollar exposure if it's lost — collateral side and cash
+   side (rollback)?
+3. Is conversion to 1-d-1(w) wildlife appraisal a viable remediation
+   pathway, given the parcel's current use and our CamScout evidence?
+
+### Inputs
+
+Stage 7 reads:
+
+- **County Appraisal District (CAD) snapshot** — current classification,
+  productivity-based assessed value, market value, last recorded
+  ownership-change date. Hand-curated per parcel for v1; productionizing
+  via Texas Comptroller PTAD downloads.
+- **Texas Comptroller intensity-of-use standards** by ecoregion
+  (8 regions: Edwards Plateau, Post Oak Savannah, Cross Timbers and
+  Prairies, Gulf Coast Prairies and Marshes, Pineywoods, Rolling
+  Plains, South Texas Plains, Trans-Pecos). Hand-curated YAML.
+- **TPWD seven-practice rubric** for 1-d-1(w) qualifying activity:
+  habitat control, erosion control, predator control, supplemental
+  water, supplemental food, shelter, census counts.
+- **NOAA PDSI / SPI 24-month rolling drought level** by county.
+  Hand-curated YAML for v1; refresh job pulls NOAA NCEI nClimDiv
+  monthly in production.
+- **Stage 5 ecological output** — placement_context per camera, total
+  independent events, total camera-days. Wires the CamScout pipeline
+  to the TPWD census-counts practice with documented evidence.
+
+### Risk score
+
+Indicative risk band — *not* a probability or forecast. Five named
+drivers, each with an explicit weight summing to 1.000, evaluated
+deterministically against the inputs above. Every driver records its
+trigger condition and a human-readable evidence string for the report;
+non-firing drivers are recorded too, so the rubric's full surface is
+visible to the reader.
+
+| Driver | Weight | Fires when |
+|---|---|---|
+| Recent ownership change | 0.40 | Deed transfer within 12 months of as-of date |
+| Classification vulnerability | 0.20 | Currently 1-d-1 (1-d-1(w) is decoupled from market ag) |
+| Extreme assessed/market spread | 0.15 | Market > 100× productivity assessed |
+| Multi-year drought | 0.15 | PDSI moderate or severe over rolling 24-month window |
+| Intensity below ecoregion standard | 0.10 | Comptroller manual minimum unmet |
+
+Bands: 0.00–0.24 low · 0.25–0.49 moderate · 0.50–0.74 elevated ·
+0.75–1.00 high. Reproducibility constraint: the same inputs always
+yield the same score; no wall-clock reads in the scoring path.
+
+### Exposure
+
+Two figures:
+
+1. **Collateral value delta** — `(assessed_per_acre − market_per_acre) ×
+   acreage`. Asset-side impact of an assessed-to-market reset on loss
+   of special-use appraisal. Confidence: *high* for productivity-
+   appraisal codes (1-d-1, 1-d-1(w)); *medium* for timber; *low*
+   when CAD inputs are missing.
+2. **§23.55 rollback liability** — Texas Tax Code recapture of three
+   prior years' difference between productivity-based and market-based
+   property tax, plus 5% simple annual interest. Cash impact at the
+   moment of conversion. Defaults to a 2.0% effective rate (Texas
+   2024–2025 average); per-county overrides in production.
+
+What the rollback estimate does *not* cover: §23.55(g) farm-loss
+exemption windows, per-CAD effective-rate variance beyond the override,
+wildlife-specific §23.522 sub-conditions, and the change-in-use event
+determining the rollback start year. The figure is a credit-memo
+estimate, not a tax determination.
+
+### Remediation pathway (1-d-1(w) conversion)
+
+Three of the seven TPWD practices must be satisfied to qualify under
+§23.521. Stage 7 evaluates each from existing Basal data:
+
+| Practice | Evidence source |
+|---|---|
+| Habitat control | CAD `primary_ag_use` (row-crop short-circuits to *does not qualify*); v1.1 wires `habitat/units.py` |
+| Erosion control | Out of band v1 — *not evaluated* |
+| Predator control | Out of band v1 — owner-attested |
+| Supplemental water | `placement_context = 'water'` on at least one camera |
+| Supplemental food | `placement_context = 'feeder'` or `'food_plot'` |
+| Shelter | Out of band v1 — *not evaluated* |
+| Census counts | CamScout: ≥1 camera-day per 100 acres AND ≥30 independent events in the survey window |
+
+A row-crop parcel is structurally incompatible with three of these
+practices (habitat, water, food) and will surface as *not viable* even
+when census evidence is strong — wildlife conversion would require
+multi-season transition out of crop production that the v1 evaluator
+does not model.
+
+### Pipeline placement
+
+Stage 7 sits after Stage 6 (risk synthesis) and reads its outputs
+plus the parcel boundary. Output is a single JSON contract per parcel,
+persisted to `parcel_valuation_status` and `valuation_risk_factors`
+in PostGIS. The lender PDF and HTML reports both render the same
+contract; a feature flag (`FEATURE_VALUATION_RISK`) hides the section
+without code changes for any lender pilot that hasn't approved it yet.
+
+### Underwriter override
+
+Every parcel carries an underwriter-override slot. When set, the
+overridden band is shown as the effective band; the computed band
+remains visible in the audit trail. Each override action (set,
+change, clear) is appended to `valuation_override_history` with
+actor + timestamp; the table is insert-only.
+
+### Texas-only scope
+
+Stage 7 is Texas-only. We never describe a 1-d-1 or 1-d-1(w) outcome
+as "wildlife valuation" generically — every state has different
+mechanisms and qualifying activity rules. We do not recommend filing
+actions; we describe risk and remediation pathway. Filing is a
+separate product line.
+
 ## Pricing
 
 - **Per parcel-verification:** $1,500 per report. One-time per survey window.
@@ -268,6 +391,13 @@ at the per-parcel tier and continuously refreshable rather than stale.
 - We do not infer presence outside the camera's detection cone.
 - We do not extrapolate beyond the surveyed property without explicit
   habitat-similarity tooling (separate product line).
+- We do not provide tax advice. The Stage 7 §23.55 rollback estimate
+  is a credit-memo figure, not a tax determination; final liability
+  is set by the CAD's change-in-use determination and the parcel's
+  combined school + county + city tax rates as published in
+  Truth-in-Taxation notices.
+- We do not generate filings. Stage 7 reports whether a 1-d-1(w)
+  conversion pathway exists; it does not recommend filing actions.
 
 ## References
 

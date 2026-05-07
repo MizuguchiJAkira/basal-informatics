@@ -12,9 +12,11 @@ build/
 .venv/
 venv/
 
-# Database
-instance/*.db
+# Database — instance dir holds runtime SQLite + per-deployment
+# state. Backup files (basal.db.bak-*) are ignored too.
+instance/
 *.db
+*.db.bak-*
 
 # Uploads & generated output
 uploads/
@@ -34,3 +36,13 @@ Thumbs.db
 
 # Node (if any)
 node_modules/
+
+# Stage 7 — local PTAD cache, refreshed by cron from PTAD downloads.
+# The cache contains parcel-level CAD data and is regenerated on
+# every refresh; not source of truth, never commit it.
+valuation/_ptad_cache/
+
+# Local pytest / coverage artifacts
+.pytest_cache/
+.coverage
+htmlcov/

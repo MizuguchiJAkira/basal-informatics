@@ -125,8 +125,11 @@ def presigned_url(key: str, expires_in: Optional[int] = None) -> str:
             Params={"Bucket": settings.SPACES_BUCKET, "Key": key},
             ExpiresIn=expires_in or settings.SPACES_PRESIGN_TTL,
         )
-    # Local fallback: caller should proxy through a Flask route.
-    # Return a pseudo-path; the download route handles the real fetch.
+    # Local fallback for dev/demo. Demo photos are seeded with
+    # spaces_key = "local/<species>/<filename>" and served by the
+    # /photos/<species>/<filename> route (see web/app.py).
+    if key.startswith("local/"):
+        return "/photos/" + key[len("local/"):]
     return f"local://{key}"
 
 

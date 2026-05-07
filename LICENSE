@@ -1,0 +1,34 @@
+Copyright (c) 2026 Basal Informatics. All rights reserved.
+
+This source code is published for the limited purpose of allowing
+lender pilot partners and their auditors to inspect the
+implementation behind the Nature Exposure Reports they receive.
+
+No license — express or implied — is granted to:
+  - copy, modify, merge, publish, distribute, sublicense, or sell
+    copies of the software;
+  - run the software as a hosted service for any third party;
+  - use the software, in whole or in part, to derive a competing
+    product;
+  - use the static reference datasets in
+    ``valuation/reference/`` for purposes other than auditing
+    Basal-produced reports.
+
+Pilot customers operating Basal-issued report deliverables under a
+signed agreement may inspect, internally test, and validate the
+behavior of this code as part of their methodology review. They may
+not redistribute it, fork it for production use elsewhere, or
+incorporate any portion of it into another product or service.
+
+Trail-camera imagery in ``demo/output/sorted/`` and
+``web/static/marketing/`` is excluded from any inspection grant
+above; see ``NOTICE.md`` for the photo provenance and any
+licensing constraints on those files in particular.
+
+Methodology citations in ``docs/METHODOLOGY.md`` reference public
+academic literature (Rowcliffe 2008, Kolowski & Forrester 2017,
+Mayer & Brisbin 2009, Anderson et al. 2016, etc.) — those papers
+are not Basal IP and are governed by their respective publishers.
+
+Questions about licensing for purposes outside this notice should
+go to the project owner via the contact listed in README.md.

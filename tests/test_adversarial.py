@@ -240,9 +240,9 @@ def test_large_portfolio_lender_dashboard_completes_under_2s():
     app.config["WTF_CSRF_ENABLED"] = False
     with app.app_context():
         owner = User.query.filter_by(email="owner@basal.eco").first()
-        lender = LenderClient.query.filter_by(slug="fcct").first()
+        lender = LenderClient.query.filter_by(slug="acme").first()
         if lender is None:
-            lender = LenderClient(name="Large Lender", slug="fcct",
+            lender = LenderClient(name="Large Lender", slug="acme",
                                   state="TX", active=True)
             db.session.add(lender); db.session.commit()
 
@@ -280,7 +280,7 @@ def test_large_portfolio_lender_dashboard_completes_under_2s():
 
     with app.test_client() as c:
         t0 = time.time()
-        r = c.get("/lender/fcct/")
+        r = c.get("/lender/acme/")
         elapsed = time.time() - t0
 
     assert r.status_code == 200

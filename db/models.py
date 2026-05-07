@@ -137,7 +137,7 @@ class LenderClient(db.Model):
     __tablename__ = "lender_clients"
 
     id = db.Column(db.Integer, primary_key=True)
-    name = db.Column(db.String(200), nullable=False)        # "Farm Credit of Central Texas"
+    name = db.Column(db.String(200), nullable=False)        # "Acme Agricultural Credit"
     slug = db.Column(db.String(80), unique=True)            # "farm-credit-central-texas" — URL-safe, stable
     parent_org = db.Column(db.String(200), nullable=True)   # "AgFirst FCS", "FCS of America", etc.
     state = db.Column(db.String(2), nullable=True)          # primary operating state
@@ -701,3 +701,161 @@ class UploadToken(db.Model):
 
     def __repr__(self):
         return f"<UploadToken {self.token[:8]}… parcel={self.property_id}>"
+
+
+# ---------------------------------------------------------------------------
+# Stage 7 — Texas wildlife valuation risk module.
+#
+# Tables back the Valuation Risk section on the lender parcel report.
+# Schema canonicalized in db/migrations/0007_valuation.sql; these models
+# exist so db.create_all() can build the same shape in SQLite for dev and
+# tests without going through the migration runner.
+# ---------------------------------------------------------------------------
+
+class CADSnapshot(db.Model):
+    """Raw County Appraisal District record for a parcel at a given date.
+
+    The CAD adapter (``valuation/adapters/cad/<county>.py``) writes one
+    row per pull; the application reads the latest by ``as_of_date``.
+    ``raw_record_json`` preserves the adapter's full pulled record so an
+    auditor can reproduce the score from the same snapshot without re-
+    pulling CAD data later.
+    """
+    __tablename__ = "cad_snapshot"
+    __table_args__ = (
+        db.UniqueConstraint(
+            "parcel_id", "as_of_date", name="uq_cad_snapshot_parcel_date",
+        ),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    parcel_id = db.Column(
+        db.Integer, db.ForeignKey("properties.id", ondelete="CASCADE"),
+        nullable=False, index=True,
+    )
+    county_slug = db.Column(db.String(40), nullable=False)
+    classification = db.Column(db.String(40), nullable=False)
+    assessed_value_per_acre = db.Column(db.Numeric(14, 2))
+    market_value_per_acre = db.Column(db.Numeric(14, 2))
+    ownership_change_date = db.Column(db.Date)
+    as_of_date = db.Column(db.Date, nullable=False)
+    raw_record_json = db.Column(db.Text)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return (
+            f"<CADSnapshot parcel={self.parcel_id} "
+            f"{self.classification} @ {self.as_of_date}>"
+        )
+
+
+class ParcelValuationStatus(db.Model):
+    """Computed Stage 7 output for a parcel.
+
+    Holds the indicative risk band, the score that resolved to it, the
+    dollar exposure, the remediation flag, and the underwriter override
+    slot. The score's named drivers live in ``valuation_risk_factors``;
+    every score must have at least one driver row.
+    """
+    __tablename__ = "parcel_valuation_status"
+
+    id = db.Column(db.Integer, primary_key=True)
+    parcel_id = db.Column(
+        db.Integer, db.ForeignKey("properties.id", ondelete="CASCADE"),
+        nullable=False, unique=True,
+    )
+    cad_snapshot_id = db.Column(
+        db.Integer, db.ForeignKey("cad_snapshot.id"),
+    )
+    risk_band = db.Column(db.String(20), nullable=False)
+    risk_score_value = db.Column(db.Numeric(5, 3), nullable=False)
+    exposure_dollars = db.Column(db.Numeric(14, 2))
+    exposure_method = db.Column(db.String(60))
+    exposure_confidence = db.Column(db.String(20))
+    remediation_viable = db.Column(db.Boolean)
+    ecoregion = db.Column(db.String(40))
+    # Underwriter override: NULL means no override. The report displays
+    # ``underwriter_override`` when present, falling back to
+    # ``risk_band`` otherwise.
+    underwriter_override = db.Column(db.String(20))
+    underwriter_notes = db.Column(db.Text)
+    override_at = db.Column(db.DateTime)
+    override_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"),
+    )
+    computed_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    factors = db.relationship(
+        "ValuationRiskFactor",
+        backref="status",
+        cascade="all, delete-orphan",
+        order_by="ValuationRiskFactor.display_order",
+    )
+
+    def __repr__(self):
+        return (
+            f"<ParcelValuationStatus parcel={self.parcel_id} "
+            f"{self.risk_band} ({self.risk_score_value})>"
+        )
+
+
+class ValuationRiskFactor(db.Model):
+    """One named driver of a parcel's risk score, with weight + evidence.
+
+    The rubric in ``valuation/scoring.py`` enumerates every factor; each
+    is recorded here per parcel-status whether or not it triggered, so
+    the report can show "considered, did not contribute" for non-firing
+    factors rather than implying the rubric is shorter than it is.
+    """
+    __tablename__ = "valuation_risk_factors"
+
+    id = db.Column(db.Integer, primary_key=True)
+    parcel_valuation_status_id = db.Column(
+        db.Integer,
+        db.ForeignKey(
+            "parcel_valuation_status.id", ondelete="CASCADE",
+        ),
+        nullable=False, index=True,
+    )
+    factor_key = db.Column(db.String(80), nullable=False)
+    weight = db.Column(db.Numeric(4, 3), nullable=False)
+    triggered = db.Column(db.Boolean, nullable=False)
+    evidence = db.Column(db.Text)
+    display_order = db.Column(db.Integer, default=0)
+
+    def __repr__(self):
+        fired = "•" if self.triggered else "○"
+        return f"<ValuationRiskFactor {fired} {self.factor_key} w={self.weight}>"
+
+
+class ValuationOverrideHistory(db.Model):
+    """Append-only audit log of underwriter_override changes.
+
+    One row per override action (set / change / clear). Rows are
+    inserted; the table has no update or delete path in application
+    code. ``parcel_valuation_status.underwriter_override`` carries
+    the *current* state; this table carries the *history*.
+    """
+    __tablename__ = "valuation_override_history"
+
+    id = db.Column(db.Integer, primary_key=True)
+    parcel_valuation_status_id = db.Column(
+        db.Integer,
+        db.ForeignKey(
+            "parcel_valuation_status.id", ondelete="CASCADE",
+        ),
+        nullable=False, index=True,
+    )
+    prev_band = db.Column(db.String(20))
+    new_band = db.Column(db.String(20))
+    notes = db.Column(db.Text)
+    set_by_user_id = db.Column(
+        db.Integer, db.ForeignKey("users.id"),
+    )
+    set_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return (
+            f"<ValuationOverrideHistory status={self.parcel_valuation_status_id} "
+            f"{self.prev_band!r}→{self.new_band!r} @ {self.set_at}>"
+        )

@@ -57,8 +57,16 @@ def fresh_sqlite(tmp_path, monkeypatch):
 
 
 def _migration_filenames():
+    """Forward migrations the runner applies and tracks.
+
+    Excludes ``.down.sql`` files — those are applied via
+    ``manage.py db rollback`` and never end up in schema_migrations.
+    """
     mig_dir = _ROOT / "db" / "migrations"
-    return sorted(p.name for p in mig_dir.glob("[0-9][0-9][0-9][0-9]_*.sql"))
+    return sorted(
+        p.name for p in mig_dir.glob("[0-9][0-9][0-9][0-9]_*.sql")
+        if not p.name.endswith(".down.sql")
+    )
 
 
 def test_migration_files_discovered():

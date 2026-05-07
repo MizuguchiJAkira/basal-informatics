@@ -219,7 +219,7 @@ def main():
     print(f"Strecker neighbor seed complete.")
     print(f"  North Ridge Hunting Lease: 1200ac, Kimble Co, TX")
     print(f"  2 cameras positioned 0.6-1.4 km N of Edwards Plateau Ranch boundary")
-    print(f"  Visible as Supplementary coverage on /lender/fcct/parcel/1")
+    print(f"  Visible as Supplementary coverage on /lender/acme/parcel/1")
     print("=" * 64)
 
 

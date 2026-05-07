@@ -16,7 +16,7 @@ hunters and the neighboring-lease camera-coverage expansion channel.
 9bbba09 feat(basal): LenderClient model + Property.lender_client_id/crop_type
 848b953 feat(basal): Feral Hog Exposure Score — tier + 0-100 score + damage projection
 bb37520 feat(basal): /lender portfolio + Nature Exposure Report routes + UI
-28cc71e seed: Farm Credit of Central Texas + 5-parcel portfolio
+28cc71e seed: Acme Agricultural Credit + 5-parcel portfolio
 71a3ac8 feat+docs: portfolio sort fix + YC-partner lender-framed demo narrative
 ```
 
@@ -28,15 +28,15 @@ later. The code is still in the monorepo untouched.
 
 ### Demo URL for YC partners
 
-<https://basal.eco/lender/fcct/>
+<https://basal.eco/lender/acme/>
 
 Login: jonahakiracheng@gmail.com (now `is_owner=TRUE` via the seed) /
 PilotSmoke-d4e5ab. Change before demo day.
 
 ### What renders
 
-Portfolio page (`/lender/fcct/`):
-  - "Farm Credit of Central Texas · 5 parcels under assessment"
+Portfolio page (`/lender/acme/`):
+  - "Acme Agricultural Credit · 5 parcels under assessment"
   - Tier-tally chips: 1 Severe · 1 Elevated · 1 Moderate · 1 Low
   - Dense table sorted Severe → Low → Pending, each row linking to its
     Nature Exposure Report

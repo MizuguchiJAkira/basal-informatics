@@ -1,0 +1,43 @@
+# NOAA PDSI / SPI rolling-24-month drought snapshot — county-level.
+#
+# SOURCE: NOAA NCEI nClimDiv county dataset; the level keys here
+# correspond to U.S. Drought Monitor categories applied to the
+# rolling 24-month PDSI, not single-month values.
+#
+#   neutral  → D0–D1 or absent
+#   mild     → D1–D2 sustained or D3 transient
+#   moderate → D2 sustained or majority of window in D3
+#   severe   → D3+ sustained, two-thirds+ of window
+#
+# AUDIT NOTE: A real implementation pulls this monthly from NOAA's
+# climate divisional time series. v1 ships hand-curated values that
+# reflect typical 2025 conditions for the demo counties so the
+# drought_pdsi_24mo factor surfaces on parcels whose ecoregion is
+# actually under documented sustained drought stress.
+#
+# Auto-refresh: scripts/refresh_drought_data.py (cron monthly).
+# The script preserves this header on rewrites; do not delete it.
+#
+# Schema: Texas county name (lowercase) → drought level keyword.
+# Counties not present default to "neutral" — the scoring rubric
+# explicitly flags missing data rather than silently inflating
+# evidence.
+
+# ----- AUTO-REFRESHED BLOCK BELOW (do not edit comments below this line) -----
+snapshot_date: '2026-05-06'
+levels:
+  kimble: moderate
+  llano: moderate
+  mason: moderate
+  sutton: moderate
+  edwards: moderate
+  real: moderate
+  bandera: moderate
+  kerr: moderate
+  gillespie: moderate
+  blanco: moderate
+  brazos: neutral
+  burleson: neutral
+  robertson: neutral
+  lee: neutral
+  bastrop: neutral

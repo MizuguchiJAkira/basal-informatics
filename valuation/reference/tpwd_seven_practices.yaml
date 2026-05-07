@@ -1,0 +1,83 @@
+# TPWD — Comprehensive Wildlife Management Planning Guidelines
+# Seven qualifying practices under Texas §23.521. A 1-d-1(w) appraisal
+# requires the landowner to perform 3 of 7 in any given tax year, with
+# practice-specific intensity standards that vary by ecoregion.
+#
+# SOURCE: TPWD Wildlife Management Planning Guidelines (one published
+# document per ecoregion). The intensity standards summarized here are
+# generalized; ecoregion-specific intensity tables live in the regional
+# guidelines documents and should be cross-referenced before producing
+# a defensible "qualifies" / "does not qualify" output.
+#
+# Schema: each practice has a key matching ``factor_key`` in the report
+# and the JSON contract, a human-readable label, a one-line summary of
+# what counts toward intensity, and the basal data input the
+# remediation logic uses to evaluate it on a parcel.
+
+habitat_control:
+  label: "Habitat control"
+  intensity_summary: >
+    Active management of vegetation: prescribed burn, brush sculpting,
+    invasive removal, native plant restoration, riparian protection.
+    Intensity varies by ecoregion (a Hill Country brush-control acreage
+    threshold differs from a Pineywoods one).
+  basal_input: "habitat layer — habitat/units.py"
+  notes: >
+    Eligibility decision in remediation.py uses the parcel's habitat
+    polygons; CamScout output does not contribute here.
+
+erosion_control:
+  label: "Erosion control"
+  intensity_summary: >
+    Constructed erosion prevention: terraces, contour furrows,
+    streambank stabilization, gully plugs.
+  basal_input: "out of band for v1 — defaults to 'not_evaluated'"
+
+predator_control:
+  label: "Predator control"
+  intensity_summary: >
+    Documented effort to manage predators of target species (often
+    coyote / feral hog given their direct impact on regional wildlife).
+  basal_input: >
+    CamScout detections of feral_hog and coyote provide presence
+    evidence; control activity is owner-attested in v1.
+
+supplemental_water:
+  label: "Providing supplemental supplies of water"
+  intensity_summary: >
+    Maintained water sources distributed across the parcel: troughs,
+    guzzlers, livestock tanks repurposed for wildlife, stock-pond
+    apron protection.
+  basal_input: >
+    Camera placement_context = 'water' counts as evidence of a managed
+    water source. Density / coverage threshold applied per ecoregion.
+
+supplemental_food:
+  label: "Providing supplemental supplies of food"
+  intensity_summary: >
+    Native browse augmentation, food plots in season, supplemental
+    pellet/grain only where ecoregion guidelines allow.
+  basal_input: >
+    Camera placement_context = 'feeder' or 'food_plot' counts as
+    evidence; total area of food plots from boundary annotations
+    (where present).
+
+shelter:
+  label: "Providing shelters"
+  intensity_summary: >
+    Brush piles, nest boxes, snag retention, half-cuts, shelter
+    structures placed to ecoregion-appropriate density.
+  basal_input: "out of band for v1 — defaults to 'not_evaluated'"
+
+census_counts:
+  label: "Census counts"
+  intensity_summary: >
+    Documented annual census of target species using a defensible
+    method: spotlight, helicopter, hunter harvest log, or
+    ecoregion-accepted alternative.
+  basal_input: >
+    CamScout output qualifies as 'remote camera census' under TPWD
+    guidance. Threshold: minimum 1 camera-day per 100 acres for the
+    declared survey window, with at least 30 independent events
+    detected. Edwards Plateau Ranch demo parcel comfortably exceeds
+    this; Riverbend Farm with no cameras would fail the practice.

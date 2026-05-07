@@ -158,9 +158,9 @@ parcel-reports over the 12 months at the flat rate.
   [basal.eco/static/sample/nature_exposure_sample.pdf](https://basal.eco/static/sample/nature_exposure_sample.pdf)
 - **Full methodology** — [basal.eco/methodology](https://basal.eco/methodology)
 - **Live lender portal** (Farm Credit pilot) —
-  [basal.eco/lender/fcct/](https://basal.eco/lender/fcct/)
+  [basal.eco/lender/acme/](https://basal.eco/lender/acme/)
 - **Sample JSON API response** —
-  [basal.eco/lender/api/fcct/parcel/12/exposure](https://basal.eco/lender/api/fcct/parcel/12/exposure)
+  [basal.eco/lender/api/acme/parcel/12/exposure](https://basal.eco/lender/api/acme/parcel/12/exposure)
 
 ## Contact
 

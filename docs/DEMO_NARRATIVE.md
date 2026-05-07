@@ -3,7 +3,7 @@
 **Audience:** YC partners.
 **Length budget:** 90 seconds spoken · ~225 words. Plus 30s of optional Q&A buffer.
 
-**Demo URL:** <https://basal.eco/lender/fcct/>
+**Demo URL:** <https://basal.eco/lender/acme/>
 (login: jonahakiracheng@gmail.com / PilotSmoke-d4e5ab — change before demo day)
 
 **Fallback:** screen recording of the same flow. See "Recording checklist" below.
@@ -23,7 +23,7 @@
 
 ### Beat 2 — The product (~30s)
 
-> This is Farm Credit of Central Texas' Basal portfolio.
+> This is Acme Agricultural Credit' Basal portfolio.
 > Five parcels under assessment.
 
 *[Point at the portfolio view. Tier chips: 1 Severe, 1 Elevated, 1 Moderate, 1 Low, 1 Pending. Table shows each parcel with its Feral Hog Exposure tier, density, event count, crop.]*
@@ -183,7 +183,7 @@ underwriting guidance, the switching cost for a lender is non-trivial.
 
 - [ ] Custom domain live (avoid Chrome "dangerous site" warning on `*.ondigitalocean.app`)
 - [ ] Demo password changed and noted
-- [ ] Site warmed (hit `/lender/fcct/` 60s before demo; gunicorn cold-boot is ~15s)
+- [ ] Site warmed (hit `/lender/acme/` 60s before demo; gunicorn cold-boot is ~15s)
 - [ ] Browser zoom at 100%
 - [ ] Demo mode on the laptop: notifications off, screen sharing tested
 - [ ] Methodology one-pager at `docs/METHODOLOGY.md` circulated to partners in advance
@@ -211,5 +211,5 @@ underwriting guidance, the switching cost for a lender is non-trivial.
 - `docs/METHODOLOGY.md` — one-pager for the loan-review-committee / ecologist question
 - `docs/ROADMAP.md` — in case a partner asks "what do you build in week one post-funding"
 - The JSON API response for Riverbend Farm at
-  `/lender/api/fcct/parcel/12/exposure` — the compliance-ready format
+  `/lender/api/acme/parcel/12/exposure` — the compliance-ready format
   that imports into the lender's internal underwriting system.
