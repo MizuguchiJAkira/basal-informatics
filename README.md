@@ -23,6 +23,19 @@ Report where every number traces back to a specific photo.
 Edwards Plateau Ranch, Riverbend Farm, Llano Highlands — illustrating
 distinct exposure tiers and a 1-d-1(w) wildlife-classified comparable.*
 
+![Stage 7 Texas ag valuation risk section](docs/screenshots/parcel-stage7-section.png)
+
+*The Stage 7 section on a parcel report — indicative risk band with
+named drivers, collateral exposure, §23.55 rollback estimate, TPWD
+3-of-7 remediation pathway. Renders only when `FEATURE_VALUATION_RISK`
+is on; legacy parcels skip the block cleanly.*
+
+**For new readers:** start with [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+(how the parts connect, where to look for "how does X work"), then
+[`docs/METHODOLOGY.md`](docs/METHODOLOGY.md) (the science). The running
+journal is [`docs/SESSION_LOG.md`](docs/SESSION_LOG.md) — its top
+section is a current-state snapshot.
+
 ---
 
 ## What the pipeline does

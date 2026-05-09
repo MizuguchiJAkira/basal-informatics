@@ -1,4 +1,50 @@
-# Session Log — 2026-04-17 (lender pivot) — newest first
+# Session Log — newest first
+
+## Reading this file
+
+This is a running engineering journal. **Newest entries are at the
+top.** Each section is a session — context, what shipped, decisions,
+and what's next. It's append-mostly: rather than rewriting old
+sections when a decision changes, a newer section supersedes it.
+
+When orienting cold, start with the **Current state** block below
+(point-in-time snapshot, kept fresh) — then dip into the journal
+sections only if you want the *why* behind a specific decision.
+
+For the durable "what is the codebase" view, read
+[`README.md`](../README.md) and [`ARCHITECTURE.md`](ARCHITECTURE.md)
+first; this file is the *narrative* layer.
+
+---
+
+## Current state — 2026-05-07
+
+- **Stage 7 (Texas ag valuation risk module) shipped.** New flat
+  module `valuation/` produces an indicative risk band per parcel
+  with named drivers, dollar exposure (collateral + §23.55
+  rollback), and a 1-d-1(w) remediation pathway. HTML + PDF
+  reports both render the new section, gated by
+  `FEATURE_VALUATION_RISK`. Migrations `0007` + `0008` (override
+  audit log) applied; SQLite + throwaway-Postgres dry-runs clean.
+- **500 tests passing** across the full suite. Stage 7 coverage:
+  scoring rubric invariants, exposure math, remediation logic,
+  override API + audit log, PTAD cache behavior.
+- **Repo pre-public-flip cleanup landed in commit `6a3e799`.** Real
+  lender renamed to "Acme Agricultural Credit" (placeholder)
+  across 81 occurrences. `LICENSE` (proprietary, all rights
+  reserved) + `NOTICE.md` (pre-flip checklist) added. README
+  updated with Stage 7 in pipeline + citations + screenshot.
+- **Local upload smoke (Strecker): pass.** `scripts/smoke_upload.py`
+  exercises mint → request → PUT → confirm → status end-to-end;
+  all 10 steps green. Production worker readiness still depends
+  on SSH-side checks (worker droplet, Spaces creds, Postmark) not
+  verified in the smoke.
+- **Open blocker for the public flip:** TNDeer trail-cam photos
+  under `demo/output/sorted/bobcat/` (322 files modified locally,
+  *not* committed) need to be replaced with synthetic / owned
+  imagery before `main` ships public. See `NOTICE.md`.
+
+---
 
 ## 2026-04-17 late evening — strategic pivot: Strecker → lender-first Basal
 
