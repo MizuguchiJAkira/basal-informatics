@@ -52,7 +52,7 @@ def _input(**kw) -> RemediationInput:
 def test_viable_when_three_practices_qualify():
     """Edwards Plateau Ranch demo profile: habitat_control (default),
     supplemental_water (water cam), supplemental_food (feeder cam),
-    census_counts (CamScout) — 4 qualifying → viable."""
+    census_counts (Strecker) — 4 qualifying → viable."""
     result = evaluate(_input())
     assert result.wildlife_conversion_viable is True
     assert len(result.qualifying_practices_evidence) >= 3
