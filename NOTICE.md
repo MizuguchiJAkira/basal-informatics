@@ -5,17 +5,19 @@ repository is flipped from private to public.**
 
 ## Demo data / IP
 
-- [ ] **Replace TNDeer trail-cam photos.** The demo currently overlays
-  real photos from the TNDeer fixture
-  (`demo/seed/install_tndeer_photos.py`) onto Edwards Plateau Ranch
-  in the dashboard. These photos are **not licensed for public
-  redistribution** as of this NOTICE date. Before flipping public:
-    1. Remove or replace the photos under `demo/output/sorted/<species>/`
-       with synthetic / owned imagery, OR
-    2. Obtain explicit written redistribution license from TNDeer and
-       record it here, OR
-    3. Excise the photos from git history with BFG or git-filter-repo
-       and rewrite the public-facing branch.
+- [x] **TNDeer trail-cam photo overlay reverted (2026-05-10).**
+  `demo/seed/install_tndeer_photos.py` overlays the species directories
+  under `demo/output/sorted/` with TNDeer-licensed JPEGs. On 2026-05-10
+  the 321 locally-overlaid photos were reverted with
+  `git checkout HEAD -- demo/output/sorted/`, restoring the tracked
+  state: 308 zero-byte placeholder files plus 13 owned curated photos
+  that pre-date the overlay. The placeholder files are rendered at
+  request time by `web/app.py:serve_photo`, which generates a
+  synthetic IR-night-vision image with species name, camera stamp,
+  and simulated temperature. No third-party imagery ships in the
+  public repo. To re-run the TNDeer overlay locally for in-house
+  demos, the install script remains in `demo/seed/`; **do not
+  commit its output.**
 
 - [ ] **Demo lender name is a placeholder.** The portfolio renders
   "Acme Agricultural Credit" (slug `acme`) — a fictional placeholder.
