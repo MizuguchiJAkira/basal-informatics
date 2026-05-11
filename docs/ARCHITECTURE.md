@@ -77,7 +77,7 @@ unit-testable — see `tests/test_valuation_*.py` and
 | Question | File |
 |---|---|
 | Pipeline orchestration / Flask factory | `web/app.py` |
-| Lender-side routes (portfolio, parcel report, override API) | `web/routes/lender.py` |
+| Lender-side routes (portfolio, parcel report, override API) | `web/routes/lender/` package — see breakdown below |
 | Hunter-side routes (Strecker upload, dashboard) | `web/routes/upload.py`, `web/routes/results.py` |
 | Database schema | `db/models.py` |
 | Migrations (forward + paired `.down.sql`) | `db/migrations/NNNN_*.sql` |
@@ -175,23 +175,38 @@ report layers, no code change needed.
 Run individually with `pytest tests/test_valuation_scoring.py` etc.;
 full suite is `pytest tests/`. Currently **500 passing**.
 
+## `web/routes/lender/` package layout
+
+Split from a 1,210-line monolith in 2026-05. Five files, each a
+single concern:
+
+| File | Lines | Holds |
+|---|---|---|
+| `__init__.py` | 56 | Package docstring + back-compat re-exports of the public surface (`lender_bp`, `parcel_valuation_override`, `_hog_history`, `_override_rate_*`). Triggers route registration by importing the route modules at the bottom. |
+| `blueprint.py` | 19 | Just the `Blueprint()` constructor. Lives in its own leaf module so route modules can import it without going through `__init__` (avoids circular imports). |
+| `helpers.py` | 572 | The `lender_access_required` decorator, density+exposure compute helpers (`_compute_parcel_exposures`, `_neighboring_coverage`, `_hog_history`, `_hog_hourly_activity`), and report-shape helpers (`_aggregate_accuracy_reports`, `_confidence_grade`, `_build_exec_summary`). |
+| `portfolio.py` | 109 | `GET /` and `GET /<lender_slug>/`. |
+| `parcel_report.py` | 290 | `GET /<lender_slug>/parcel/<id>` and `GET /<lender_slug>/parcel/<id>/upload`. |
+| `api.py` | 394 | `GET /api/<slug>/parcel/<id>/exposure`, `POST /api/<slug>/parcel/<id>/valuation/override`, plus the in-process override rate-limiter. |
+
+Old import paths (`from web.routes.lender import lender_bp`) still
+work — the package `__init__` re-exports the public surface.
+
 ## Where the code is rough
 
 Read these with patience:
 
-- **`web/routes/lender.py`** — 1,180 lines after Stage 7. Functions
-  are clearly named and docstring'd, but the file is the longest in
-  the repo. A future split would be `lender/portfolio.py`,
-  `lender/parcel_report.py`, `lender/api.py`.
 - **`web/templates/lender/parcel_report.html`** — 1,000+ lines of
   inline-styled Jinja. The visual weight of the report renders from
   this single file. Worth viewing the rendered output (screenshots
-  in this directory) before reading the markup.
-- **The 322 modified bobcat photos** in `demo/output/sorted/bobcat/`
-  on the working tree are TNDeer-sourced placeholders pending
-  replacement before any public flip. Per `NOTICE.md` they are
-  *deliberately not committed*. A `git status` will look noisier
-  than the actual repo state.
+  in this directory) before reading the markup. Splitting into
+  template includes is the next refactor on this surface.
+- **Bobcat photo modifications cleared (2026-05-10).** Earlier
+  versions of this file warned about 322 uncommitted demo photo
+  modifications; those were reverted to the tracked state via
+  `git checkout HEAD -- demo/output/sorted/`. The synthetic-photo
+  render path in `web/app.py:serve_photo` covers them at request
+  time. See `NOTICE.md`.
 
 ## What's next (engineering)
 
