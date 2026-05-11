@@ -71,7 +71,7 @@ D = (y/t) · π / (v · r · (2 + θ))
 
 | Term | Meaning | Source |
 |---|---|---|
-| `y/t` | detections per camera-day | computed from camscout output |
+| `y/t` | detections per camera-day | computed from strecker output |
 | `v` | average daily travel distance (km/day) | literature per species |
 | `r` | camera detection radius (km) | camera spec / calibration |
 | `θ` | camera detection angle (radians) | camera spec |
@@ -197,7 +197,7 @@ Section ordering change:
 1. Scaffold `risk/population.py` with REM + bootstrap — unit-tested in
    isolation using synthetic Poisson detection streams.
 2. Migrate schema (additive).
-3. Wire `camscout/report.py` to produce `(y, t)` per camera-species-period.
+3. Wire `strecker/report.py` to produce `(y, t)` per camera-species-period.
 4. Plumb through `bias/ipw.py` so the adjusted rate feeds REM.
 5. Rebuild report sections.
 6. End-to-end demo on Matagorda Bay calibration data — compare REM density

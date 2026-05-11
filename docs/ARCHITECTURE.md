@@ -162,7 +162,7 @@ report layers, no code change needed.
 | REM density math | `tests/test_population.py` |
 | IPW bias correction | `tests/test_placement_ipw.py` |
 | Tier classifier | `tests/test_exposure.py` |
-| Worker + classify pipeline | `tests/test_camscout.py`, `tests/test_classify_and_score.py` |
+| Worker + classify pipeline | `tests/test_strecker.py`, `tests/test_classify_and_score.py` |
 | Lender route end-to-end (HTML render parity) | `tests/test_lender_route.py` |
 | Stage 7 scoring rubric | `tests/test_valuation_scoring.py` |
 | Stage 7 exposure math | `tests/test_valuation_exposure.py` |

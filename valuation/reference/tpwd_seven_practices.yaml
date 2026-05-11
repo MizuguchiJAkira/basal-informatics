@@ -24,7 +24,7 @@ habitat_control:
   basal_input: "habitat layer — habitat/units.py"
   notes: >
     Eligibility decision in remediation.py uses the parcel's habitat
-    polygons; CamScout output does not contribute here.
+    polygons; Strecker output does not contribute here.
 
 erosion_control:
   label: "Erosion control"
@@ -39,7 +39,7 @@ predator_control:
     Documented effort to manage predators of target species (often
     coyote / feral hog given their direct impact on regional wildlife).
   basal_input: >
-    CamScout detections of feral_hog and coyote provide presence
+    Strecker detections of feral_hog and coyote provide presence
     evidence; control activity is owner-attested in v1.
 
 supplemental_water:
@@ -76,7 +76,7 @@ census_counts:
     method: spotlight, helicopter, hunter harvest log, or
     ecoregion-accepted alternative.
   basal_input: >
-    CamScout output qualifies as 'remote camera census' under TPWD
+    Strecker output qualifies as 'remote camera census' under TPWD
     guidance. Threshold: minimum 1 camera-day per 100 acres for the
     declared survey window, with at least 30 independent events
     detected. Edwards Plateau Ranch demo parcel comfortably exceeds

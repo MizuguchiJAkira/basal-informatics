@@ -16,7 +16,7 @@ Practice → Basal data mapping (full prose in
     supplemental_food    ← cameras with placement_context = 'feeder'
                            or 'food_plot'
     shelter              ← out of band v1 (returns "not_evaluated")
-    census_counts        ← CamScout: detection summaries on the parcel
+    census_counts        ← Strecker: detection summaries on the parcel
 
 The output is a structured per-practice evaluation. The viability
 flag is True iff at least 3 practices return ``"qualifies"`` —
@@ -272,7 +272,7 @@ def _eval_census_counts(inp: RemediationInput) -> PracticeEvaluation:
             label=_label("census_counts"),
             status="does_not_qualify",
             evidence=(
-                "No CamScout deployment recorded on this parcel "
+                "No Strecker deployment recorded on this parcel "
                 "during the survey window."
             ),
         )

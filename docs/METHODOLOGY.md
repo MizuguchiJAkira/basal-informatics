@@ -262,7 +262,7 @@ a loan-review committee asks but the rest of this methodology does not:
 2. What is the dollar exposure if it's lost — collateral side and cash
    side (rollback)?
 3. Is conversion to 1-d-1(w) wildlife appraisal a viable remediation
-   pathway, given the parcel's current use and our CamScout evidence?
+   pathway, given the parcel's current use and our Strecker evidence?
 
 ### Inputs
 
@@ -283,7 +283,7 @@ Stage 7 reads:
   Hand-curated YAML for v1; refresh job pulls NOAA NCEI nClimDiv
   monthly in production.
 - **Stage 5 ecological output** — placement_context per camera, total
-  independent events, total camera-days. Wires the CamScout pipeline
+  independent events, total camera-days. Wires the Strecker pipeline
   to the TPWD census-counts practice with documented evidence.
 
 ### Risk score
@@ -341,7 +341,7 @@ Three of the seven TPWD practices must be satisfied to qualify under
 | Supplemental water | `placement_context = 'water'` on at least one camera |
 | Supplemental food | `placement_context = 'feeder'` or `'food_plot'` |
 | Shelter | Out of band v1 — *not evaluated* |
-| Census counts | CamScout: ≥1 camera-day per 100 acres AND ≥30 independent events in the survey window |
+| Census counts | Strecker: ≥1 camera-day per 100 acres AND ≥30 independent events in the survey window |
 
 A row-crop parcel is structurally incompatible with three of these
 practices (habitat, water, food) and will surface as *not viable* even

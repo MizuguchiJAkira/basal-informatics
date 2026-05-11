@@ -200,7 +200,7 @@ valuation/           Stage 7 — Texas ag valuation risk module
                      Llano hand-curated; PTAD cache loader)
   scoring.py         rule-based risk score (named drivers, evidence)
   exposure.py        assessed-to-market reset + §23.55 rollback
-  remediation.py     TPWD 3-of-7 logic (CamScout census wired to
+  remediation.py     TPWD 3-of-7 logic (Strecker census wired to
                      the census_counts practice)
   compute.py         orchestrator → JSON contract
 report/              PDF + HTML report generation (ReportLab, Jinja)
