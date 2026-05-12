@@ -1,446 +1,500 @@
-{% extends "base.html" %}
-{% block title %}Enterprise demo — {{ brand_name }}{% endblock %}
-{% block content %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Enterprise demo — basal informatics</title>
+  <meta name="description" content="Interactive walkthrough of the full insurer pipeline — trail-cam SD card to lender-grade Nature Exposure Report in under ten seconds.">
 
-{# ─────────────────────────────────────────────────────────────
-   /demo — interactive walkthrough of the full insurer pipeline.
-   Editorial palette (ink + bone + forest), Fraunces display,
-   JetBrains Mono numerals — same design system as the landing
-   and the lender parcel report.
-   Every DOM id and data-stage attribute below is read by the
-   inline JS at the bottom; don't rename without updating both.
-   ───────────────────────────────────────────────────────────── #}
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;1,9..144,400&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/basal.css') }}">
 
-<style>
-  /* Full-bleed dark shell. base.html sets <body class="bg-white …">
-     via Tailwind, which overrides basal.css's --page token at higher
-     specificity. The shell breaks out of the white body and paints
-     the warm-black --page color across the full viewport width so
-     the editorial palette reads as intended. Margin trick covers the
-     gutters that base.html's container would otherwise leave white. */
-  .dx-shell {
-    background: var(--page);
-    color: var(--bone);
-    margin-left: calc(50% - 50vw);
-    margin-right: calc(50% - 50vw);
-    padding: calc(var(--unit) * 6) calc(50vw - 50% + var(--gutter, 32px)) calc(var(--unit) * 10);
-    min-height: 80vh;
-  }
-  .dx-page {
-    color: var(--bone);
-    max-width: 1080px;
-    margin: 0 auto;
-  }
-  .dx-header { margin-bottom: calc(var(--unit) * 5); }
-  .dx-eyebrow {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.22em;
-    text-transform: uppercase;
-    color: var(--forest-lit);
-    margin-bottom: 12px;
-  }
-  .dx-display {
-    font-family: var(--font-display);
-    font-weight: 400;
-    font-size: 44px;
-    line-height: 1.05;
-    color: var(--bone);
-    margin: 0 0 14px;
-  }
-  .dx-display em {
-    font-style: italic;
-    color: var(--forest-lit);
-  }
-  .dx-lede {
-    font-size: 15px;
-    line-height: 1.55;
-    color: var(--bone-70);
-    max-width: 640px;
-  }
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='marketing/basal-mark.svg') }}">
+</head>
+<body class="basal">
 
-  /* Two-column setup row. */
-  .dx-setup {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 24px;
-    margin: calc(var(--unit) * 5) 0 calc(var(--unit) * 4);
-  }
-  .dx-panel {
-    border: 1px solid var(--bone-15);
-    background: var(--page-lift);
-    padding: 22px 24px;
-    border-radius: 2px;
-  }
-  .dx-panel-eyebrow {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.20em;
-    text-transform: uppercase;
-    color: var(--bone-55);
-    margin-bottom: 18px;
-  }
+  {# ── NAV ─────────────────────────────────────────────────── #}
+  {# Same shell as the landing nav so a YC reviewer who clicked
+     through from basal.eco sees no visual rupture. Section anchors
+     link back to the landing because /demo doesn't carry those
+     sections itself. #}
+  <nav class="b-nav">
+    <div class="b-nav-inner">
+      <a class="b-brand" href="/">
+        {% include 'basal/_mark.svg' ignore missing %}
+        <span class="b-brand-text">basal<em> /</em> informatics</span>
+      </a>
+      <div class="b-nav-links">
+        <a href="/#methodology" data-n="01">Methodology</a>
+        <a href="/#pipeline"    data-n="02">Pipeline</a>
+        <a href="/demo"         data-n="03">Enterprise demo</a>
+        <a href="/#pricing"     data-n="04">Pricing</a>
+      </div>
+      <a class="b-cta" href="/lender/acme/">
+        See live portfolio
+        <span aria-hidden="true">→</span>
+      </a>
+    </div>
+  </nav>
 
-  /* Parcel info — a quiet definition list. */
-  .dx-dl {
-    display: grid;
-    grid-template-columns: auto 1fr;
-    column-gap: 24px;
-    row-gap: 0;
-    font-size: 14px;
-  }
-  .dx-dl dt,
-  .dx-dl dd { padding: 10px 0; border-bottom: 1px solid var(--bone-08); margin: 0; }
-  .dx-dl dt { color: var(--bone-55); font-weight: 400; }
-  .dx-dl dd { text-align: right; color: var(--bone); font-family: var(--font-mono); font-size: 13px; }
-  .dx-dl > *:nth-last-child(-n+2) { border-bottom: 0; }
+  {# ── DEMO PAGE STYLES ───────────────────────────────────── #}
+  <style>
+    /* Page-local scaffolding. Visual tokens come from basal.css. */
+    .dx-page {
+      color: var(--bone);
+      padding: calc(var(--unit) * 8) var(--gutter, 32px) calc(var(--unit) * 12);
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+    .dx-header { margin-bottom: calc(var(--unit) * 5); }
+    .dx-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      color: var(--forest-lit);
+      margin-bottom: 12px;
+    }
+    .dx-display {
+      font-family: var(--font-display);
+      font-weight: 400;
+      font-size: 44px;
+      line-height: 1.05;
+      color: var(--bone);
+      margin: 0 0 14px;
+    }
+    .dx-display em {
+      font-style: italic;
+      color: var(--forest-lit);
+    }
+    .dx-lede {
+      font-size: 15px;
+      line-height: 1.55;
+      color: var(--bone-70);
+      max-width: 640px;
+    }
 
-  /* Pipeline stage list — numbered, with status pip. */
-  .dx-stages { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 12px; }
-  .dx-stage {
-    display: grid;
-    grid-template-columns: 28px 32px 1fr;
-    align-items: center;
-    gap: 14px;
-    font-size: 14px;
-    color: var(--bone-70);
-  }
-  .dx-stage-num {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.10em;
-    color: var(--bone-40);
-  }
-  .dx-pip {
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    border: 1px solid var(--bone-15);
-    display: flex; align-items: center; justify-content: center;
-    font-size: 10px;
-    color: var(--bone-55);
-    transition: all 0.2s ease;
-  }
-  .dx-pip.running {
-    border-color: var(--ir-green);
-    background: rgba(127, 255, 156, 0.10);
-    color: var(--ir-green);
-    animation: dx-pulse 1.2s ease-in-out infinite;
-  }
-  .dx-pip.done {
-    border-color: var(--forest-lit);
-    background: var(--forest-deep);
-    color: var(--bone);
-  }
-  @keyframes dx-pulse {
-    0%, 100% { box-shadow: 0 0 0 0 rgba(127, 255, 156, 0.30); }
-    50%      { box-shadow: 0 0 0 6px rgba(127, 255, 156, 0); }
-  }
+    /* Two-column setup row. */
+    .dx-setup {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 24px;
+      margin: calc(var(--unit) * 5) 0 calc(var(--unit) * 4);
+    }
+    .dx-panel {
+      border: 1px solid var(--bone-15);
+      background: var(--page-lift);
+      padding: 22px 24px;
+      border-radius: 2px;
+    }
+    .dx-panel-eyebrow {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      color: var(--bone-55);
+      margin-bottom: 18px;
+    }
 
-  /* CTA — same shape as b-cta on the landing. */
-  .dx-cta {
-    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
-    width: 100%;
-    padding: 14px 22px;
-    border: 1px solid var(--forest-lit);
-    background: var(--forest-deep);
-    color: var(--bone);
-    font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    cursor: pointer;
-    transition: background 0.15s, transform 0.15s;
-  }
-  .dx-cta:hover:not(:disabled) { background: var(--forest); }
-  .dx-cta:active:not(:disabled) { transform: translateY(1px); }
-  .dx-cta:disabled {
-    background: transparent;
-    color: var(--bone-55);
-    border-color: var(--bone-15);
-    cursor: not-allowed;
-  }
-  .dx-cta .dx-cta-arrow {
-    display: inline-block;
-    transition: transform 0.15s;
-  }
-  .dx-cta:hover:not(:disabled) .dx-cta-arrow { transform: translateX(3px); }
+    .dx-dl {
+      display: grid;
+      grid-template-columns: auto 1fr;
+      column-gap: 24px;
+      row-gap: 0;
+      font-size: 14px;
+    }
+    .dx-dl dt,
+    .dx-dl dd { padding: 10px 0; border-bottom: 1px solid var(--bone-08); margin: 0; }
+    .dx-dl dt { color: var(--bone-55); font-weight: 400; }
+    .dx-dl dd { text-align: right; color: var(--bone); font-family: var(--font-mono); font-size: 13px; }
+    .dx-dl > *:nth-last-child(-n+2) { border-bottom: 0; }
 
-  /* Results panel. */
-  .dx-results { margin-top: calc(var(--unit) * 5); }
-  .dx-results-head {
-    display: flex; align-items: baseline; gap: 24px;
-    padding-bottom: 18px; margin-bottom: 22px;
-    border-bottom: 1px solid var(--bone-15);
-    flex-wrap: wrap;
-  }
-  .dx-badge {
-    padding: 8px 18px;
-    border: 1px solid currentColor;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.20em;
-    text-transform: uppercase;
-    color: var(--tier-sev);
-  }
-  .dx-score-num {
-    font-family: var(--font-display);
-    font-size: 52px;
-    line-height: 1;
-    color: var(--bone);
-    margin-right: 6px;
-  }
-  .dx-score-denom {
-    font-family: var(--font-mono);
-    font-size: 14px;
-    color: var(--bone-55);
-  }
-  .dx-score-label {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.15em;
-    text-transform: uppercase;
-    color: var(--bone-55);
-    margin-top: 6px;
-  }
+    .dx-stages { list-style: none; padding: 0; margin: 0 0 22px; display: grid; gap: 12px; }
+    .dx-stage {
+      display: grid;
+      grid-template-columns: 28px 32px 1fr;
+      align-items: center;
+      gap: 14px;
+      font-size: 14px;
+      color: var(--bone-70);
+    }
+    .dx-stage-num {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.10em;
+      color: var(--bone-40);
+    }
+    .dx-pip {
+      width: 18px; height: 18px;
+      border-radius: 50%;
+      border: 1px solid var(--bone-15);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 10px;
+      color: var(--bone-55);
+      transition: all 0.2s ease;
+    }
+    .dx-pip.running {
+      border-color: var(--ir-green);
+      background: rgba(127, 255, 156, 0.10);
+      color: var(--ir-green);
+      animation: dx-pulse 1.2s ease-in-out infinite;
+    }
+    .dx-pip.done {
+      border-color: var(--forest-lit);
+      background: var(--forest-deep);
+      color: var(--bone);
+    }
+    @keyframes dx-pulse {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(127, 255, 156, 0.30); }
+      50%      { box-shadow: 0 0 0 6px rgba(127, 255, 156, 0); }
+    }
 
-  /* Metric tiles. */
-  .dx-metrics {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-    margin-bottom: 28px;
-  }
-  .dx-metric {
-    border-top: 1px solid var(--bone-15);
-    padding-top: 12px;
-  }
-  .dx-metric-val {
-    font-family: var(--font-mono);
-    font-size: 22px;
-    color: var(--bone);
-    margin-bottom: 4px;
-    letter-spacing: -0.01em;
-  }
-  .dx-metric-label {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--bone-55);
-  }
+    .dx-cta {
+      display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+      width: 100%;
+      padding: 14px 22px;
+      border: 1px solid var(--forest-lit);
+      background: var(--forest-deep);
+      color: var(--bone);
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.15s;
+    }
+    .dx-cta:hover:not(:disabled) { background: var(--forest); }
+    .dx-cta:active:not(:disabled) { transform: translateY(1px); }
+    .dx-cta:disabled {
+      background: transparent;
+      color: var(--bone-55);
+      border-color: var(--bone-15);
+      cursor: not-allowed;
+    }
+    .dx-cta .dx-cta-arrow {
+      display: inline-block;
+      transition: transform 0.15s;
+    }
+    .dx-cta:hover:not(:disabled) .dx-cta-arrow { transform: translateX(3px); }
 
-  /* Species table. */
-  .dx-species { margin: 0 0 24px; }
-  .dx-species-h {
-    font-family: var(--font-display);
-    font-size: 22px;
-    font-weight: 400;
-    color: var(--bone);
-    margin: 0 0 12px;
-  }
-  .dx-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
-  .dx-table thead th {
-    text-align: left;
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    color: var(--bone-55);
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--bone-15);
-    font-weight: 500;
-  }
-  .dx-table tbody td {
-    padding: 10px 12px;
-    border-bottom: 1px solid var(--bone-08);
-    color: var(--bone);
-  }
-  .dx-table tbody td.dx-num { font-family: var(--font-mono); text-align: right; }
-  .dx-table tbody td.dx-mid { text-align: center; font-family: var(--font-mono); }
-  .dx-flag {
-    font-family: var(--font-mono);
-    font-size: 10px;
-    letter-spacing: 0.10em;
-    text-transform: uppercase;
-    color: var(--bone-55);
-  }
-  .dx-flag.dx-flag-warn { color: var(--tier-mod); }
-  .dx-flag.dx-flag-elev { color: var(--tier-elev); }
-  .dx-flag.dx-flag-sev  { color: var(--tier-sev); }
+    .dx-results { margin-top: calc(var(--unit) * 5); }
+    .dx-results-head {
+      display: flex; align-items: baseline; gap: 24px;
+      padding-bottom: 18px; margin-bottom: 22px;
+      border-bottom: 1px solid var(--bone-15);
+      flex-wrap: wrap;
+    }
+    .dx-badge {
+      padding: 8px 18px;
+      border: 1px solid currentColor;
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      color: var(--tier-sev);
+    }
+    .dx-score-num {
+      font-family: var(--font-display);
+      font-size: 52px;
+      line-height: 1;
+      color: var(--bone);
+      margin-right: 6px;
+    }
+    .dx-score-denom {
+      font-family: var(--font-mono);
+      font-size: 14px;
+      color: var(--bone-55);
+    }
+    .dx-score-label {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.15em;
+      text-transform: uppercase;
+      color: var(--bone-55);
+      margin-top: 6px;
+    }
 
-  /* Download tile. */
-  .dx-pdf {
-    display: block;
-    border: 1px solid var(--forest-lit);
-    background: transparent;
-    color: var(--bone);
-    padding: 18px 22px;
-    text-align: center;
-    text-decoration: none;
-    transition: background 0.15s;
-    margin-bottom: 14px;
-  }
-  .dx-pdf:hover { background: var(--forest-deep); }
-  .dx-pdf-title {
-    font-family: var(--font-body);
-    font-size: 14px;
-    font-weight: 500;
-    letter-spacing: 0.02em;
-    text-transform: uppercase;
-    color: var(--bone);
-  }
-  .dx-pdf-meta {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    color: var(--bone-55);
-    margin-top: 6px;
-  }
-  .dx-timing {
-    font-family: var(--font-mono);
-    font-size: 11px;
-    letter-spacing: 0.10em;
-    text-transform: uppercase;
-    color: var(--bone-55);
-  }
+    .dx-metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 16px;
+      margin-bottom: 28px;
+    }
+    .dx-metric {
+      border-top: 1px solid var(--bone-15);
+      padding-top: 12px;
+    }
+    .dx-metric-val {
+      font-family: var(--font-mono);
+      font-size: 22px;
+      color: var(--bone);
+      margin-bottom: 4px;
+      letter-spacing: -0.01em;
+    }
+    .dx-metric-label {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--bone-55);
+    }
 
-  .dx-hidden { display: none; }
+    .dx-species { margin: 0 0 24px; }
+    .dx-species-h {
+      font-family: var(--font-display);
+      font-size: 22px;
+      font-weight: 400;
+      color: var(--bone);
+      margin: 0 0 12px;
+    }
+    .dx-table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+    .dx-table thead th {
+      text-align: left;
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+      color: var(--bone-55);
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--bone-15);
+      font-weight: 500;
+    }
+    .dx-table tbody td {
+      padding: 10px 12px;
+      border-bottom: 1px solid var(--bone-08);
+      color: var(--bone);
+    }
+    .dx-table tbody td.dx-num { font-family: var(--font-mono); text-align: right; }
+    .dx-table tbody td.dx-mid { text-align: center; font-family: var(--font-mono); }
+    .dx-flag {
+      font-family: var(--font-mono);
+      font-size: 10px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--bone-55);
+    }
+    .dx-flag.dx-flag-warn { color: var(--tier-mod); }
+    .dx-flag.dx-flag-elev { color: var(--tier-elev); }
+    .dx-flag.dx-flag-sev  { color: var(--tier-sev); }
 
-  /* Narrow screens. */
-  @media (max-width: 800px) {
-    .dx-setup { grid-template-columns: 1fr; }
-    .dx-metrics { grid-template-columns: repeat(2, 1fr); }
-    .dx-display { font-size: 32px; }
-  }
-</style>
+    .dx-pdf {
+      display: block;
+      border: 1px solid var(--forest-lit);
+      background: transparent;
+      color: var(--bone);
+      padding: 18px 22px;
+      text-align: center;
+      text-decoration: none;
+      transition: background 0.15s;
+      margin-bottom: 14px;
+    }
+    .dx-pdf:hover { background: var(--forest-deep); }
+    .dx-pdf-title {
+      font-family: var(--font-body);
+      font-size: 14px;
+      font-weight: 500;
+      letter-spacing: 0.02em;
+      text-transform: uppercase;
+      color: var(--bone);
+    }
+    .dx-pdf-meta {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      color: var(--bone-55);
+      margin-top: 6px;
+    }
+    .dx-timing {
+      font-family: var(--font-mono);
+      font-size: 11px;
+      letter-spacing: 0.10em;
+      text-transform: uppercase;
+      color: var(--bone-55);
+    }
 
-<div class="dx-shell"><div class="dx-page">
+    .dx-hidden { display: none; }
 
-  <header class="dx-header">
-    <div class="dx-eyebrow">Enterprise demo · Nature Exposure Assessment</div>
-    <h1 class="dx-display">
-      Run the full <em>insurer pipeline</em><br>
-      against a reference parcel.
-    </h1>
-    <p class="dx-lede">
-      Trail-camera dump in. SpeciesNet classification, Kolowski-2017
-      placement-bias correction, REM density estimate with bootstrap CI,
-      tier classification, ESA cross-reference, and a finished Nature
-      Exposure Report PDF out. Eight stages, one click,
-      ~6 seconds end-to-end.
-    </p>
-  </header>
+    @media (max-width: 800px) {
+      .dx-setup { grid-template-columns: 1fr; }
+      .dx-metrics { grid-template-columns: repeat(2, 1fr); }
+      .dx-display { font-size: 32px; }
+    }
+  </style>
 
-  <div class="dx-setup">
+  {# ── DEMO PAGE BODY ─────────────────────────────────────── #}
+  <main class="dx-page">
 
-    {# ── Parcel info ─────────────────────────────────────────── #}
-    <section class="dx-panel" aria-labelledby="demo-parcel-h">
-      <div class="dx-panel-eyebrow" id="demo-parcel-h">Reference parcel</div>
-      <dl class="dx-dl">
-        <dt>Parcel ID</dt>            <dd>TX-KIM-2024-04817</dd>
-        <dt>Location</dt>             <dd>Kimble County, TX</dd>
-        <dt>Acreage</dt>              <dd>2,340</dd>
-        <dt>Ecoregion</dt>            <dd>Edwards Plateau (Level III)</dd>
-        <dt>Camera stations</dt>      <dd>14</dd>
-        <dt>Monitoring period</dt>    <dd>10 months</dd>
-      </dl>
-    </section>
+    <header class="dx-header">
+      <div class="dx-eyebrow">Enterprise demo · Nature Exposure Assessment</div>
+      <h1 class="dx-display">
+        Run the full <em>insurer pipeline</em><br>
+        against a reference parcel.
+      </h1>
+      <p class="dx-lede">
+        Trail-camera dump in. SpeciesNet classification, Kolowski-2017
+        placement-bias correction, REM density estimate with bootstrap CI,
+        tier classification, ESA cross-reference, and a finished Nature
+        Exposure Report PDF out. Eight stages, one click,
+        ~6 seconds end-to-end.
+      </p>
+    </header>
 
-    {# ── Pipeline stages + run button ─────────────────────────── #}
-    <section class="dx-panel" aria-labelledby="pipeline-h">
-      <div class="dx-panel-eyebrow" id="pipeline-h">Pipeline stages</div>
+    <div class="dx-setup">
 
-      <ul class="dx-stages">
-        <li class="dx-stage" data-stage="ingest">
-          <span class="dx-stage-num">01</span>
-          <span class="dx-pip" id="icon-ingest">·</span>
-          <span>Strecker (ingest + classify)</span>
-        </li>
-        <li class="dx-stage" data-stage="habitat">
-          <span class="dx-stage-num">02</span>
-          <span class="dx-pip" id="icon-habitat">·</span>
-          <span>Habitat analysis</span>
-        </li>
-        <li class="dx-stage" data-stage="bias">
-          <span class="dx-stage-num">03</span>
-          <span class="dx-pip" id="icon-bias">·</span>
-          <span>IPW bias correction</span>
-        </li>
-        <li class="dx-stage" data-stage="risk">
-          <span class="dx-stage-num">04</span>
-          <span class="dx-pip" id="icon-risk">·</span>
-          <span>Risk synthesis</span>
-        </li>
-        <li class="dx-stage" data-stage="pdf">
-          <span class="dx-stage-num">05</span>
-          <span class="dx-pip" id="icon-pdf">·</span>
-          <span>Enterprise PDF</span>
-        </li>
-      </ul>
+      <section class="dx-panel" aria-labelledby="demo-parcel-h">
+        <div class="dx-panel-eyebrow" id="demo-parcel-h">Reference parcel</div>
+        <dl class="dx-dl">
+          <dt>Parcel ID</dt>            <dd>TX-KIM-2024-04817</dd>
+          <dt>Location</dt>             <dd>Kimble County, TX</dd>
+          <dt>Acreage</dt>              <dd>2,340</dd>
+          <dt>Ecoregion</dt>            <dd>Edwards Plateau (Level III)</dd>
+          <dt>Camera stations</dt>      <dd>14</dd>
+          <dt>Monitoring period</dt>    <dd>10 months</dd>
+        </dl>
+      </section>
 
-      <button id="run-btn" onclick="runAssessment()" class="dx-cta">
-        Run assessment
-        <span class="dx-cta-arrow" aria-hidden="true">→</span>
-      </button>
-    </section>
+      <section class="dx-panel" aria-labelledby="pipeline-h">
+        <div class="dx-panel-eyebrow" id="pipeline-h">Pipeline stages</div>
 
-  </div>
+        <ul class="dx-stages">
+          <li class="dx-stage" data-stage="ingest">
+            <span class="dx-stage-num">01</span>
+            <span class="dx-pip" id="icon-ingest">·</span>
+            <span>Strecker (ingest + classify)</span>
+          </li>
+          <li class="dx-stage" data-stage="habitat">
+            <span class="dx-stage-num">02</span>
+            <span class="dx-pip" id="icon-habitat">·</span>
+            <span>Habitat analysis</span>
+          </li>
+          <li class="dx-stage" data-stage="bias">
+            <span class="dx-stage-num">03</span>
+            <span class="dx-pip" id="icon-bias">·</span>
+            <span>IPW bias correction</span>
+          </li>
+          <li class="dx-stage" data-stage="risk">
+            <span class="dx-stage-num">04</span>
+            <span class="dx-pip" id="icon-risk">·</span>
+            <span>Risk synthesis</span>
+          </li>
+          <li class="dx-stage" data-stage="pdf">
+            <span class="dx-stage-num">05</span>
+            <span class="dx-pip" id="icon-pdf">·</span>
+            <span>Enterprise PDF</span>
+          </li>
+        </ul>
 
-  {# ── Results panel ─────────────────────────────────────────── #}
-  <div id="results-panel" class="dx-results dx-hidden">
+        <button id="run-btn" onclick="runAssessment()" class="dx-cta">
+          Run assessment
+          <span class="dx-cta-arrow" aria-hidden="true">→</span>
+        </button>
+      </section>
 
-    <div class="dx-results-head">
-      <div id="risk-badge" class="dx-badge"></div>
+    </div>
+
+    <div id="results-panel" class="dx-results dx-hidden">
+
+      <div class="dx-results-head">
+        <div id="risk-badge" class="dx-badge"></div>
+        <div>
+          <span class="dx-score-num" id="fh-score"></span>
+          <span class="dx-score-denom">/ 100</span>
+          <div class="dx-score-label">Feral hog exposure score</div>
+        </div>
+      </div>
+
+      <div class="dx-metrics">
+        <div class="dx-metric">
+          <div class="dx-metric-val" id="metric-species"></div>
+          <div class="dx-metric-label">Species detected</div>
+        </div>
+        <div class="dx-metric">
+          <div class="dx-metric-val" id="metric-annual-loss"></div>
+          <div class="dx-metric-label">Est. annual loss</div>
+        </div>
+        <div class="dx-metric">
+          <div class="dx-metric-val" id="metric-npv"></div>
+          <div class="dx-metric-label">10-year NPV</div>
+        </div>
+        <div class="dx-metric">
+          <div class="dx-metric-val" id="metric-esa"></div>
+          <div class="dx-metric-label">ESA species flagged</div>
+        </div>
+      </div>
+
+      <section class="dx-species">
+        <h2 class="dx-species-h">Species inventory</h2>
+        <table class="dx-table" id="species-table">
+          <thead>
+            <tr>
+              <th>Species</th>
+              <th style="text-align:right">Detection freq.</th>
+              <th style="text-align:center">Confidence</th>
+              <th>Risk flag</th>
+            </tr>
+          </thead>
+          <tbody id="species-tbody"></tbody>
+        </table>
+      </section>
+
+      <a id="pdf-link" href="#" class="dx-pdf">
+        <div class="dx-pdf-title">Download Nature Exposure Report (PDF)</div>
+        <div class="dx-pdf-meta" id="pdf-meta"></div>
+      </a>
+
+      <p class="dx-timing" id="timing"></p>
+    </div>
+
+  </main>
+
+  {# ── FOOTER ─────────────────────────────────────────────── #}
+  {# Lifted verbatim from basal/landing.html so a viewer landing
+     on /demo from the YC application or a direct link sees the
+     same footer chrome they'd see on basal.eco. #}
+  <footer class="b-footer">
+    <div class="b-footer-inner">
       <div>
-        <span class="dx-score-num" id="fh-score"></span>
-        <span class="dx-score-denom">/ 100</span>
-        <div class="dx-score-label">Feral hog exposure score</div>
+        <a class="b-brand" href="/" style="color: var(--bone); margin-bottom: 20px; display: inline-flex;">
+          {% include 'basal/_mark.svg' ignore missing %}
+          <span class="b-brand-text" style="color: var(--bone);">basal<em style="color: var(--forest-lit);"> /</em> informatics</span>
+        </a>
+        <p class="b-body" style="font-size: 13px; max-width: 36ch;">
+          Ecological verification for agricultural lenders and reinsurers. Primary-source data, methodology-defensible.
+        </p>
+      </div>
+      <div>
+        <h4>Product</h4>
+        <ul>
+          <li><a href="/lender/acme/">Live portfolio</a></li>
+          <li><a href="/#sample">Sample report</a></li>
+          <li><a href="/lender/api/acme/parcel/12/exposure">JSON API</a></li>
+          <li><a href="/#pricing">Pricing</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Science</h4>
+        <ul>
+          <li><a href="/methodology">Methodology</a></li>
+          <li><a href="/#pipeline">Pipeline</a></li>
+          <li><a href="/methodology#references">References</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4>Company</h4>
+        <ul>
+          <li><a href="mailto:hello@basal.eco">hello@basal.eco</a></li>
+          <li><a href="https://github.com/MizuguchiJAkira/basal-informatics">github</a></li>
+        </ul>
       </div>
     </div>
-
-    <div class="dx-metrics">
-      <div class="dx-metric">
-        <div class="dx-metric-val" id="metric-species"></div>
-        <div class="dx-metric-label">Species detected</div>
-      </div>
-      <div class="dx-metric">
-        <div class="dx-metric-val" id="metric-annual-loss"></div>
-        <div class="dx-metric-label">Est. annual loss</div>
-      </div>
-      <div class="dx-metric">
-        <div class="dx-metric-val" id="metric-npv"></div>
-        <div class="dx-metric-label">10-year NPV</div>
-      </div>
-      <div class="dx-metric">
-        <div class="dx-metric-val" id="metric-esa"></div>
-        <div class="dx-metric-label">ESA species flagged</div>
-      </div>
+    <div class="b-footer-meta">
+      <span>© basal informatics · 2026</span>
+      <span>basal.eco · made in Austin, TX</span>
     </div>
-
-    <section class="dx-species">
-      <h2 class="dx-species-h">Species inventory</h2>
-      <table class="dx-table" id="species-table">
-        <thead>
-          <tr>
-            <th>Species</th>
-            <th style="text-align:right">Detection freq.</th>
-            <th style="text-align:center">Confidence</th>
-            <th>Risk flag</th>
-          </tr>
-        </thead>
-        <tbody id="species-tbody"></tbody>
-      </table>
-    </section>
-
-    <a id="pdf-link" href="#" class="dx-pdf">
-      <div class="dx-pdf-title">Download Nature Exposure Report (PDF)</div>
-      <div class="dx-pdf-meta" id="pdf-meta"></div>
-    </a>
-
-    <p class="dx-timing" id="timing"></p>
-  </div>
-
-</div></div>
+  </footer>
 
 <script>
 // Tier badge colors — mapped to the design-system tier tokens
@@ -476,7 +530,6 @@ async function runAssessment() {
     const originalLabel = btn.innerHTML;
     btn.innerHTML = 'Running…';
 
-    // Reset stage pips, then mark stage 1 as running.
     const stages = ['ingest', 'habitat', 'bias', 'risk', 'pdf'];
     for (const s of stages) setStageIcon(s, '');
     setStageIcon('ingest', 'running');
@@ -490,24 +543,19 @@ async function runAssessment() {
             return;
         }
 
-        // All stages → done (single tick, since the API is one round-trip).
         for (const s of stages) setStageIcon(s, 'done');
 
-        // Reveal results.
         const panel = document.getElementById('results-panel');
         panel.classList.remove('dx-hidden');
 
-        // Risk badge.
         const badge = document.getElementById('risk-badge');
         badge.textContent = data.overall_risk_rating;
         badge.style.color = ratingColors[data.overall_risk_rating] || 'var(--bone)';
 
-        // Feral hog score.
         const fhScore = data.feral_hog_exposure_score;
         document.getElementById('fh-score').textContent =
             fhScore ? fhScore.score : '—';
 
-        // Metric tiles.
         document.getElementById('metric-species').textContent =
             data.species_inventory.length;
 
@@ -521,13 +569,10 @@ async function runAssessment() {
         document.getElementById('metric-esa').textContent =
             (reg.esa_species_present || []).length;
 
-        // Species table.
         const tbody = document.getElementById('species-tbody');
         tbody.innerHTML = '';
         for (const sp of data.species_inventory) {
             const flag = sp.risk_flag || '—';
-            // Map flag text → semantic class so the color comes from
-            // the tier tokens instead of hardcoded Tailwind classes.
             let flagClass = 'dx-flag';
             if (flag.includes('SEVERE') || flag.includes('CRITICAL'))
                 flagClass += ' dx-flag-sev';
@@ -545,18 +590,14 @@ async function runAssessment() {
             `);
         }
 
-        // PDF download.
         const pdfLink = document.getElementById('pdf-link');
         pdfLink.href = '/demo/download-pdf';
         document.getElementById('pdf-meta').textContent =
             data.pdf_size_kb ? data.pdf_size_kb + ' KB' : '';
 
-        // Timing.
         document.getElementById('timing').textContent =
             'Processed in ' + (data.processing_time_sec || 0).toFixed(1) + ' seconds';
 
-        // Smooth scroll into the results so the camera follows
-        // the user's eye naturally.
         panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
     } catch (err) {
@@ -567,4 +608,5 @@ async function runAssessment() {
     }
 }
 </script>
-{% endblock %}
+</body>
+</html>
