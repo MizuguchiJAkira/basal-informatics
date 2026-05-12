@@ -5,10 +5,14 @@ POST /demo/run — Triggers the full insurer pipeline on demo data, returns JSON
 GET  /demo/download-pdf — Serve the generated enterprise PDF
 """
 
+import logging
 import os
 import time
 
 from flask import Blueprint, jsonify, render_template, send_file
+
+
+logger = logging.getLogger(__name__)
 
 demo_bp = Blueprint("demo", __name__, url_prefix="/demo")
 
@@ -58,7 +62,11 @@ def run_assessment():
             photos = ingest(demo=True)
             detections = classify(photos, demo=True)
         except Exception:
-            pass
+            # Detection generation is best-effort here — the PDF
+            # renderer falls back to placeholder figures when None.
+            # Still surface the failure so a real regression doesn't
+            # hide behind a silent fallback.
+            logger.exception("demo ingest+classify failed; PDF will use fallback")
 
         pdf_path = generate_report(
             assessment=assessment,

@@ -467,7 +467,7 @@
 
   <script>
   (function(){
-    var boundary = {{ parcel.boundary_geojson | safe }};
+    var boundary = {{ parcel.boundary_geojson | safe_geojson | tojson }};
     var onParcelCams = {{ on_parcel_cams_json | tojson }};
     var neighborCams = {{ neighbor_cams_json | tojson }};
 

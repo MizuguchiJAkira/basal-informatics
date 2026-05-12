@@ -103,6 +103,12 @@
 
   <article class="b-methodology">
     <p class="b-methodology-eyebrow">Primary document · v1 · last updated from docs/METHODOLOGY.md on render</p>
+    {# Safe by source-of-data: body_html is produced from
+       docs/METHODOLOGY.md in this repo, server-side, by the markdown
+       library — never from user input. If this template is ever
+       extended to render markdown from an untrusted source, this
+       ``| safe`` must be removed and the HTML sanitized through
+       bleach or a similar allowlist library before insertion. #}
     {{ body_html | safe }}
   </article>
 

@@ -5,6 +5,7 @@ summary stats, activity patterns, camera leaderboards, and map data.
 """
 
 import json
+import logging
 
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
@@ -13,6 +14,9 @@ from sqlalchemy import func
 from config import settings
 from db.models import db, Property, Camera, Season, DetectionSummary, CoverageScore
 from strecker.coverage import calculate_coverage
+
+
+logger = logging.getLogger(__name__)
 
 dashboard_api_bp = Blueprint("dashboard_api", __name__, url_prefix="/api")
 
@@ -603,6 +607,13 @@ def dashboard_coverage(pid):
 
         db.session.commit()
     except Exception:
+        # Persisting the coverage score is best-effort; the user gets
+        # the computed result either way. But silent rollbacks have
+        # hidden DB schema drifts in the past, so log with parcel
+        # context.
+        logger.exception(
+            "failed to persist coverage score for parcel %s", pid,
+        )
         db.session.rollback()
 
     return jsonify(result)

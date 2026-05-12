@@ -1,21 +1,35 @@
+# ── Version posture ──────────────────────────────────────────────────────
+# Web + security-relevant packages are pinned with the compatible-release
+# operator (``~=``) so patch / minor versions keep flowing for CVE fixes,
+# but a future major-version transitive bump can't drag us into breakage
+# or regression silently. Non-security packages stay on ``>=`` so the
+# usual dependency resolution still has room.
+#
+# To refresh: pip-audit (or pip list --outdated) → bump the locked
+# numbers below → re-run the full test suite → commit.
+
 # Core
-click>=8.1
-python-dotenv>=1.0
-pydantic>=2.0
+click~=8.1
+python-dotenv~=1.0
+pydantic~=2.0
 
 # Database
-psycopg2-binary>=2.9
+psycopg2-binary~=2.9
 
 # Spatial
 shapely>=2.0
 geopandas>=0.14
 
-# Web
-flask>=3.0
-flask-sqlalchemy>=3.1
-flask-login>=0.6
-flask-migrate>=4.0
-flask-wtf>=1.2
+# Web + auth (security-sensitive — pinned)
+flask~=3.0
+flask-sqlalchemy~=3.1
+flask-login~=0.6
+flask-migrate~=4.0
+flask-wtf~=1.2
+# Werkzeug + Jinja2 are flask dependencies; pinning them explicitly so a
+# transitive version can't slip in below the security baseline.
+werkzeug~=3.0
+jinja2~=3.1
 
 # Reports
 reportlab>=4.0
@@ -40,8 +54,14 @@ piexif>=1.1.3
 # worker container doesn't need it.
 markdown>=3.5
 
-# Object storage (DO Spaces / S3)
-boto3>=1.34
+# Object storage (DO Spaces / S3) — pinned because boto3 makes outbound
+# calls with our credentials and a malicious release would be high-impact.
+boto3~=1.34
 
-# Production server
-gunicorn>=21.0
+# Production server — pinned because workers/auth handling are
+# security-relevant.
+gunicorn~=21.0
+
+# YAML loader for Stage 7 reference datasets — pinned because we use it
+# at request time to load user-routed CAD data; safe_load is required.
+PyYAML~=6.0

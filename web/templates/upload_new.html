@@ -72,7 +72,7 @@
 <script>
 (function() {
     const PROPERTY_ID = {{ property.id }};
-    const boundary = {{ property.boundary_geojson | safe if property.boundary_geojson else 'null' }};
+    const boundary = {{ property.boundary_geojson | safe_geojson | tojson }};
 
     // Mini map
     const map = L.map('upload-map', {

@@ -82,8 +82,8 @@
     // State
     // -----------------------------------------------------------------------
     const PROPERTY_ID = {{ property.id }};
-    const boundaryGeoJSON = {{ property.boundary_geojson | safe if property.boundary_geojson else 'null' }};
-    let cameras = {{ cameras_json | safe }};
+    const boundaryGeoJSON = {{ property.boundary_geojson | safe_geojson | tojson }};
+    let cameras = {{ cameras_data | tojson }};
     let markers = {};   // camera.id -> L.Marker
     let activeExifCamId = null;
 

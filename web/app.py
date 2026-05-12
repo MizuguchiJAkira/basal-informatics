@@ -218,6 +218,32 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
     app.config["DEMO_MODE"] = demo
     app.config["SITE"] = site
 
+    # ── Session + upload hardening ──
+    # Defaults appropriate for a production deployment behind HTTPS.
+    # Settings can be overridden via env vars if a non-default deploy
+    # needs them; the values here are the safe baseline.
+    app.config.setdefault("SESSION_COOKIE_HTTPONLY", True)
+    app.config.setdefault("SESSION_COOKIE_SAMESITE", "Lax")
+    # SECURE on prod (HTTPS only), off in demo / local dev so cookies
+    # work over plain HTTP. ``demo`` is the local-dev signal here.
+    app.config.setdefault(
+        "SESSION_COOKIE_SECURE",
+        not demo and os.environ.get("FLASK_ENV") != "development",
+    )
+    app.config.setdefault("REMEMBER_COOKIE_HTTPONLY", True)
+    app.config.setdefault("REMEMBER_COOKIE_SAMESITE", "Lax")
+    app.config.setdefault(
+        "REMEMBER_COOKIE_SECURE",
+        not demo and os.environ.get("FLASK_ENV") != "development",
+    )
+
+    # Cap the largest single request the app will accept. Trail-cam
+    # SD-card ZIPs run a few hundred MB realistically; 500 MB is a
+    # generous ceiling that still bounds DOS attempts via giant
+    # request bodies. Production deploys serving from object storage
+    # via presigned PUT bypass this cap (the bytes never touch Flask).
+    app.config.setdefault("MAX_CONTENT_LENGTH", 500 * 1024 * 1024)
+
     # Stage 7 (Texas Ag Valuation Risk) — feature flag.
     # Default ON for demo runs so the lender PDF + HTML carry the new
     # section out of the box. Production deploys set it via env so a
@@ -349,6 +375,26 @@ def create_app(demo: bool = False, site: str = "strecker") -> Flask:
         return app.config.get("DEFAULT_SITE", "strecker")
 
     app.active_site = active_site  # expose for views that need it
+
+    # ── Template filters ──
+    # ``safe_geojson`` parses a stored boundary_geojson string and
+    # returns the parsed object so the template can ``| tojson`` it
+    # for safe JS embedding. The previous pattern was ``| safe`` on
+    # the raw string, which executed any non-JSON content the row
+    # happened to contain — see web/routes/api/properties.py for
+    # the matching write-side validator that defends the storage.
+    import json as _json
+
+    @app.template_filter("safe_geojson")
+    def _safe_geojson(raw):
+        if not raw:
+            return None
+        if isinstance(raw, (dict, list)):
+            return raw
+        try:
+            return _json.loads(raw)
+        except (ValueError, TypeError):
+            return None
 
     # ── Brand context (per-request, host-aware) ──
     @app.context_processor

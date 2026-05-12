@@ -4,6 +4,8 @@ All endpoints return JSON and require authentication.
 Ownership is verified on every request (property.user_id == current_user.id).
 """
 
+import json
+
 from flask import Blueprint, jsonify, request
 from flask_login import current_user, login_required
 
@@ -14,6 +16,75 @@ from db.models import (
 )
 
 properties_api_bp = Blueprint("properties_api", __name__, url_prefix="/api")
+
+
+# ---------------------------------------------------------------------------
+# Input validation
+# ---------------------------------------------------------------------------
+
+# Hard cap on a stored GeoJSON payload. Large enough for a multi-thousand-
+# vertex parcel polygon, small enough to bound DOS via giant uploads and
+# to keep the rendered <script> body sane. Tuned to 256 KB.
+_BOUNDARY_GEOJSON_MAX_BYTES = 256 * 1024
+
+
+def _validate_boundary_geojson(raw):
+    """Validate user-submitted GeoJSON before persisting.
+
+    Returns (cleaned_json_string, None) on success, or
+    (None, error_message) on failure. The cleaned string is re-
+    serialized through ``json.dumps`` so that whatever the caller
+    submitted is laundered through a strict JSON parser — defeats
+    the stored-XSS class where a caller submits a fragment like
+    ``null;alert(1)//`` that isn't valid JSON but would render
+    literally if the template later embedded the raw string.
+
+    Caller is responsible for treating ``None`` raw as "field
+    absent" (i.e., not calling this).
+    """
+    if raw is None or raw == "":
+        return None, None
+    # Accept both already-parsed dicts (JSON request body) and JSON
+    # strings (form-encoded posts).
+    if isinstance(raw, (dict, list)):
+        obj = raw
+    elif isinstance(raw, str):
+        if len(raw.encode("utf-8")) > _BOUNDARY_GEOJSON_MAX_BYTES:
+            return None, (
+                f"boundary_geojson too large "
+                f"(max {_BOUNDARY_GEOJSON_MAX_BYTES} bytes)"
+            )
+        try:
+            obj = json.loads(raw)
+        except (ValueError, TypeError):
+            return None, "boundary_geojson must be valid JSON"
+    else:
+        return None, "boundary_geojson must be a JSON object or string"
+
+    # Minimal GeoJSON shape check. We don't deep-validate coordinates
+    # here — the map renderer handles malformed geometry gracefully —
+    # but we DO require the envelope is a recognized GeoJSON type so
+    # that the string in the database is at least a well-formed JSON
+    # object the front-end can pass to Leaflet without surprise.
+    if not isinstance(obj, dict):
+        return None, "boundary_geojson must be a JSON object"
+    if obj.get("type") not in (
+        "Feature", "FeatureCollection",
+        "Polygon", "MultiPolygon",
+        "Point", "LineString", "GeometryCollection",
+    ):
+        return None, (
+            "boundary_geojson must have a recognized GeoJSON 'type' "
+            "(Feature, FeatureCollection, Polygon, etc.)"
+        )
+
+    # Re-serialize through json.dumps to neutralize anything weird in
+    # the source — surrogate pairs, control characters, etc. — and to
+    # ensure the stored string is canonical JSON.
+    cleaned = json.dumps(obj, separators=(",", ":"))
+    if len(cleaned.encode("utf-8")) > _BOUNDARY_GEOJSON_MAX_BYTES:
+        return None, "boundary_geojson too large after normalization"
+    return cleaned, None
 
 
 # ---------------------------------------------------------------------------
@@ -114,13 +185,19 @@ def create_property():
         except (TypeError, ValueError):
             return jsonify({"error": "acreage must be a number"}), 400
 
+    cleaned_geojson, err = _validate_boundary_geojson(
+        data.get("boundary_geojson"),
+    )
+    if err:
+        return jsonify({"error": err}), 400
+
     prop = Property(
         user_id=current_user.id,
         name=name,
         county=county,
         state=state,
         acreage=acreage,
-        boundary_geojson=data.get("boundary_geojson"),
+        boundary_geojson=cleaned_geojson,
     )
     db.session.add(prop)
     db.session.commit()
@@ -153,7 +230,19 @@ def update_property(property_id):
     if not data:
         return jsonify({"error": "JSON body required"}), 400
 
-    for field in ("name", "county", "state", "acreage", "boundary_geojson"):
+    # Re-validate boundary_geojson on update if the caller is changing
+    # it. Same posture as the create endpoint — never store an
+    # unvalidated user-supplied string that the template will later
+    # embed into a <script> body.
+    if "boundary_geojson" in data:
+        cleaned_geojson, err = _validate_boundary_geojson(
+            data["boundary_geojson"],
+        )
+        if err:
+            return jsonify({"error": err}), 400
+        prop.boundary_geojson = cleaned_geojson
+
+    for field in ("name", "county", "state", "acreage"):
         if field in data:
             setattr(prop, field, data[field])
 

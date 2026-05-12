@@ -61,7 +61,11 @@ def cameras(property_id):
         abort(404)
 
     cameras = prop.cameras.all()
-    cameras_json = json.dumps([
+    # Pass the list (not a pre-dumped JSON string) so the template can
+    # use ``| tojson`` for JS-safe embedding. Jinja's tojson escapes
+    # ``</`` as ``</``, blocking the </script> escape a malicious
+    # camera ``name`` would otherwise enable on this page.
+    cameras_data = [
         {
             "id": c.id,
             "camera_label": c.camera_label,
@@ -71,9 +75,9 @@ def cameras(property_id):
             "placement_context": c.placement_context,
         }
         for c in cameras
-    ])
+    ]
     return render_template(
-        "cameras/setup.html", property=prop, cameras_json=cameras_json
+        "cameras/setup.html", property=prop, cameras_data=cameras_data
     )
 
 
