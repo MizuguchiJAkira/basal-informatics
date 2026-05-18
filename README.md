@@ -241,21 +241,23 @@ repository.
 # 1. Postgres + PostGIS (dev, via compose)
 docker-compose up -d db
 
-# 2. Python deps (web container only — worker image is separate)
+# 2. Python venv + deps (web container only — worker image is separate)
+python3 -m venv .venv
+source .venv/bin/activate
 pip install -r requirements.txt
 
 # 3. Copy the env template + fill in DATABASE_URL, SPACES_*, FLASK_SECRET_KEY
 cp .env.example .env
 
 # 4. Schema + demo data
-python manage.py db migrate
-python manage.py db seed          # synthetic — see notice above
+python3 manage.py db migrate
+python3 manage.py db seed          # synthetic — see notice above
 
 # 5. Run both brands in demo mode on one process
-python manage.py web               # :5002
+python3 manage.py web run          # :5000 (or $PORT)
 
-# Basal landing:       http://localhost:5002/
-# Strecker landing:    http://localhost:5002/?site=strecker
+# Basal landing:       http://localhost:5000/
+# Strecker landing:    http://localhost:5000/?site=strecker
 ```
 
 ## Tests
